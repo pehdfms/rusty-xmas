@@ -156,7 +156,7 @@ fn day_menu(idx: usize, day: &AdventOfCodeDay, year: u32) {
                     run_solve(day.part2, year, (idx + 1) as u32);
                 }
 
-                println!("");
+                println!();
                 println!("{}", "[-1] - Go back".red());
 
                 loop {
@@ -170,7 +170,7 @@ fn day_menu(idx: usize, day: &AdventOfCodeDay, year: u32) {
                 new_menu();
                 run_solve(day.part1, year, (idx + 1) as u32);
 
-                println!("");
+                println!();
                 println!("{}", "[-1] - Go back".red());
 
                 loop {
@@ -184,7 +184,7 @@ fn day_menu(idx: usize, day: &AdventOfCodeDay, year: u32) {
                 new_menu();
                 run_solve(day.part2, year, (idx + 1) as u32);
 
-                println!("");
+                println!();
                 println!("{}", "[-1] - Go back".red());
 
                 loop {
