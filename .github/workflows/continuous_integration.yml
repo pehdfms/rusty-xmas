@@ -35,11 +35,13 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Cache Dependencies
+        id: rust-cache
         uses: Swatinem/rust-cache@v2
         with:
           shared-key: cache-${{ hashFiles('**/Cargo.lock') }}
           cache-on-failure: true
       - name: Install Rust
+        if: ${{ !steps.rust-cache.outputs.cache-hit }}
         uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
