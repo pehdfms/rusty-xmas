@@ -20,9 +20,9 @@ pub fn get_data(year: u32, day: u32) -> Result<String, Box<dyn Error>> {
             .expect("Couldn't get session key to request data from. Add it to /data/session.txt");
         let data = request_data(year, day, session)?;
 
-        let _ = write_cache(year, day, &data).or_else(|e| {
+        let _ = write_cache(year, day, &data).map_err(|e| {
             println!("Couldn't write to cache!");
-            Err(e)
+            e
         });
 
         Ok(data)
@@ -30,7 +30,7 @@ pub fn get_data(year: u32, day: u32) -> Result<String, Box<dyn Error>> {
 }
 
 fn get_session() -> Result<String, io::Error> {
-    let mut file = File::open(format!("data/session.txt"))?;
+    let mut file = File::open("data/session.txt")?;
     let mut data = String::new();
 
     file.read_to_string(&mut data)?;
@@ -51,7 +51,7 @@ fn write_cache(year: u32, day: u32, data: &String) -> Result<(), Box<dyn Error>>
     create_dir_all(format!("data/cache/{year}"))?;
 
     let mut file = File::create(format!("data/cache/{year}/day{day}.txt"))?;
-    file.write(data.as_bytes())?;
+    file.write_all(data.as_bytes())?;
 
     Ok(())
 }
