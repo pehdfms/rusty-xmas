@@ -28,15 +28,16 @@ fn print_year(idx: usize, year: &AdventOfCodeYear) {
     println!(
         "[{idx}]  - Year {} - {}{}",
         year.year,
-        "*".repeat(full_solve_count).green(),
-        "*".repeat(half_solve_count).yellow()
+        "*".repeat(full_solve_count).bright_yellow(),
+        "*".repeat(half_solve_count).bright_magenta()
     );
 }
 
 pub fn start_menu() {
     loop {
         new_menu();
-        println!("{}", "[-2] - Latest Year".green());
+        println!("{}", "[-3] - Latest Year".green());
+        println!("{}", "[-2] - Latest Day".green());
         println!("{}", "[-1] - Exit".red());
 
         let years = get_years();
@@ -53,7 +54,17 @@ pub fn start_menu() {
         };
 
         match answer {
-            -2 => year_menu(&years[years.len() - 1]),
+            -3 => year_menu(&years[years.len() - 1]),
+            -2 => {
+                let latest_year = years.len() - 1;
+                let latest_day = &years[latest_year].days.len() - 1;
+
+                day_menu(
+                    latest_day,
+                    &years[latest_year].days[latest_day],
+                    years[latest_year].year,
+                )
+            }
             -1 => return,
             x if x < 0 || x as usize >= years.len() => invalid_option(),
             x => year_menu(&years[x as usize]),
@@ -62,7 +73,16 @@ pub fn start_menu() {
 }
 
 fn print_day(idx: usize, day: &AdventOfCodeDay) {
-    println!("Day [{}] - {}", idx + 1, day.name);
+    println!(
+        "Day [{}] - {} - {}",
+        idx + 1,
+        day.name,
+        match day.progress() {
+            DayProgress::FullySolved => "**".bright_yellow(),
+            DayProgress::PartlySolved => "*".bright_yellow(),
+            DayProgress::Unsolved => "".bright_yellow(), // Can't actually see, but required to match types.
+        }
+    );
 }
 
 fn year_menu(year: &AdventOfCodeYear) {
@@ -135,14 +155,44 @@ fn day_menu(idx: usize, day: &AdventOfCodeDay, year: u32) {
                 if part2_solved {
                     run_solve(day.part2, year, (idx + 1) as u32);
                 }
+
+                println!("");
+                println!("{}", "[-1] - Go back".red());
+
+                loop {
+                    match get_stdin_number() {
+                        Some(-1) => return,
+                        _ => invalid_option(),
+                    }
+                }
             }
             1 if part1_solved => {
                 new_menu();
                 run_solve(day.part1, year, (idx + 1) as u32);
+
+                println!("");
+                println!("{}", "[-1] - Go back".red());
+
+                loop {
+                    match get_stdin_number() {
+                        Some(-1) => return,
+                        _ => invalid_option(),
+                    }
+                }
             }
             2 if part2_solved => {
                 new_menu();
                 run_solve(day.part2, year, (idx + 1) as u32);
+
+                println!("");
+                println!("{}", "[-1] - Go back".red());
+
+                loop {
+                    match get_stdin_number() {
+                        Some(-1) => return,
+                        _ => invalid_option(),
+                    }
+                }
             }
             _ => invalid_option(),
         }
@@ -150,8 +200,16 @@ fn day_menu(idx: usize, day: &AdventOfCodeDay, year: u32) {
 }
 
 fn run_solve(solve_function: SolveFunction, year: u32, day: u32) {
-    get_data(year, day);
-    warn("Not implemented!");
+    if let Ok(data) = get_data(year, day) {
+        let result = solve_function
+            .expect("run_solve is only called when we know solve_function is Ok()")(
+            data
+        );
+
+        println!("Result: {result}");
+    } else {
+        warn("Couldn't load data for current day.");
+    }
 }
 
 fn get_stdin_number() -> Option<i32> {
