@@ -29,6 +29,7 @@ jobs:
       - name: Run tests
         run: cargo test --verbose
 
+
   rustfmt:
     name: Format Check
     runs-on: ubuntu-latest
