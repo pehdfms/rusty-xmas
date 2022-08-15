@@ -35,4 +35,4 @@ jobs:
       - name: Check Formatting
         run: cargo fmt --all --check
       - name: Check Clippy
-        run: cargo clippy --deny warnings
+        run: cargo clippy -- --deny warnings
