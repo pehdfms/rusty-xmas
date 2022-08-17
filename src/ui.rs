@@ -120,7 +120,7 @@ fn year_menu(year: &AdventOfCodeYear) {
 fn day_menu(idx: usize, day: &AdventOfCodeDay, year: u32) {
     loop {
         new_menu();
-        println!("--- Day {} - {} ---", idx, day.name);
+        println!("--- Day {} - {} ---", idx + 1, day.name);
 
         if matches!(day.progress(), DayProgress::Unsolved) {
             warn("Day is not solved!");
