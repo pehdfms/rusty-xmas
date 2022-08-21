@@ -18,9 +18,6 @@ impl Wire {
 
         let mut current = &path[0];
         for point in &path[1..] {
-            let xpair = (current.x, point.x);
-            let ypair = (current.y, point.y);
-
             let (xmin, xmax) = (current.x.min(point.x), current.x.max(point.x));
             let (ymin, ymax) = (current.y.min(point.y), current.y.max(point.y));
 
@@ -57,7 +54,7 @@ fn parse_wire(path: &str) -> Wire {
     path.split(',').for_each(|vector| {
         let direction = vector
             .chars()
-            .nth(0)
+            .next()
             .expect("All input vectors should have a direction and distance");
 
         let distance: i32 = vector[1..]
@@ -95,10 +92,7 @@ fn parse_wire(path: &str) -> Wire {
 }
 
 fn part1(data: String) -> String {
-    let wires: Vec<Wire> = data
-        .split_whitespace()
-        .map(|path| parse_wire(path))
-        .collect();
+    let wires: Vec<Wire> = data.split_whitespace().map(parse_wire).collect();
 
     let a = &wires[0];
     let b = &wires[1];
@@ -106,10 +100,6 @@ fn part1(data: String) -> String {
     let intersections = a.intersections(b);
 
     Wire::closest(intersections).to_string()
-}
-
-fn part2(data: String) -> String {
-    data
 }
 
 #[test]
