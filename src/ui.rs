@@ -19,10 +19,23 @@ pub fn start_menu() {
 
     let mut menu = Menu::new("");
 
-    menu.add(-3, "Latest Year", || warn("Not Implemented!"));
+    menu.add(-3, "Latest Year", || {
+        year_menu(&years[years.len() - 1]);
+    });
+
     menu.color(-3, colored::Color::Green);
 
-    menu.add(-2, "Latest Day", || warn("Not Implemented!"));
+    menu.add(-2, "Latest Day", || {
+        let latest_year = years.len() - 1;
+        let latest_day = &years[latest_year].days.len() - 1;
+
+        day_menu(
+            latest_day,
+            &years[latest_year].days[latest_day],
+            years[latest_year].year,
+        )
+    });
+
     menu.color(-2, colored::Color::Green);
 
     menu.add_back_option("Exit");
