@@ -8,10 +8,59 @@ struct Point {
 
 #[derive(Debug)]
 struct Path {
-    min: Point,
-    max: Point,
+    start: Point,
+    end: Point,
 }
 
+impl Path {
+    fn min(&self) -> Point {
+        Point {
+            x: self.start.x.min(self.end.x),
+            y: self.start.y.min(self.end.y),
+        }
+    }
+
+    fn max(&self) -> Point {
+        Point {
+            x: self.start.x.max(self.end.x),
+            y: self.start.y.max(self.end.y),
+        }
+    }
+
+    fn intersects(&self, b: &Path) -> bool {
+        let amin = self.min();
+        let bmin = b.min();
+        let amax = self.max();
+        let bmax = b.max();
+
+        if amin.x == 0 && bmin.x == 0 && amin.y == 0 && bmin.y == 0 {
+            return false;
+        }
+
+        let x_intersects = amin.x <= bmax.x && amax.x >= bmin.x;
+        let y_intersects = amin.y <= bmax.y && amax.y >= bmin.y;
+
+        x_intersects && y_intersects
+    }
+
+    fn fixed_point(&self, b: &Path) -> Point {
+        let x = if self.start.x == self.end.x {
+            self.start.x
+        } else {
+            b.start.x
+        };
+
+        let y = if self.start.y == self.end.y {
+            self.start.y
+        } else {
+            b.start.y
+        };
+
+        Point { x, y }
+    }
+}
+
+#[derive(Debug)]
 struct Wire {
     paths: Vec<Path>,
 }
@@ -22,12 +71,15 @@ impl Wire {
 
         let mut current = &path[0];
         for point in &path[1..] {
-            let (xmin, xmax) = (current.x.min(point.x), current.x.max(point.x));
-            let (ymin, ymax) = (current.y.min(point.y), current.y.max(point.y));
-
             paths.push(Path {
-                min: Point { x: xmin, y: ymin },
-                max: Point { x: xmax, y: ymax },
+                start: Point {
+                    x: current.x,
+                    y: current.y,
+                },
+                end: Point {
+                    x: point.x,
+                    y: point.y,
+                },
             });
 
             current = point;
@@ -36,31 +88,17 @@ impl Wire {
         Wire { paths }
     }
 
-    fn intersects(a: &Path, b: &Path) -> bool {
-        if a.min.x == 0 && b.min.x == 0 && a.min.y == 0 && b.min.y == 0 {
-            return false;
-        }
-
-        let x_intersects = a.min.x <= b.max.x && a.max.x >= b.min.x;
-        let y_intersects = a.min.y <= b.max.y && a.max.y >= b.min.y;
-
-        x_intersects && y_intersects
-    }
-
-    fn fixed_point(a: &Path, b: &Path) -> Point {
-        let x = if a.min.x == a.max.x { a.min.x } else { b.min.x };
-        let y = if a.min.y == a.max.y { a.min.y } else { b.min.y };
-
-        Point { x, y }
-    }
-
     fn intersections(&self, wire: &Wire) -> Vec<Point> {
         let mut points: Vec<Point> = Vec::new();
 
         for i in &self.paths {
             for j in &wire.paths {
-                if Self::intersects(i, j) {
-                    points.push(Self::fixed_point(i, j));
+                if i.intersects(j) {
+                    let fixed_point = i.fixed_point(j);
+                    if fixed_point.x == 0 && fixed_point.y == 0 {
+                        continue;
+                    }
+                    points.push(fixed_point);
                 }
             }
         }
@@ -77,34 +115,45 @@ impl Wire {
     }
 
     pub fn first_intersection(&self, wire: &Wire) -> i32 {
-        let mut first = 0;
-        let mut set = false;
+        let mut adist = 0;
+        let mut shortest = None;
+        for apoint in &self.paths {
+            let amin = apoint.min();
+            let amax = apoint.max();
 
-        let mut a_dist = 0;
-        for a in &self.paths {
-            a_dist += a.max.x - a.min.x + a.max.y - a.min.y;
-            let mut b_dist = 0;
+            adist += amax.x - amin.x + amax.y - amin.y;
+            let mut bdist = 0;
+            for bpoint in &wire.paths {
+                let bmin = bpoint.min();
+                let bmax = bpoint.max();
 
-            for b in &wire.paths {
-                b_dist += a.max.x - a.min.x + a.max.y - a.min.y;
+                bdist += bmax.x - bmin.x + bmax.y - bmin.y;
 
-                let dist = a_dist + b_dist;
+                if apoint.intersects(bpoint) {
+                    let fixed_point = apoint.fixed_point(bpoint);
 
-                println!("{dist}");
-                println!("{}", Self::intersects(a, b));
-                println!("{a:?}");
-                println!("{b:?}");
-                println!("{:?}", Self::fixed_point(a, b));
-                println!();
+                    if fixed_point.x == 0 && fixed_point.y == 0 {
+                        continue;
+                    }
 
-                if Self::intersects(a, b) {
-                    first = dist;
-                    set = true;
+                    let intersection_adist = adist
+                        - (apoint.end.x - fixed_point.x).abs()
+                        - (apoint.end.y - fixed_point.y).abs();
+
+                    let intersection_bdist = bdist
+                        - (bpoint.end.x - fixed_point.x).abs()
+                        - (bpoint.end.y - fixed_point.y).abs();
+                    let total_dist = intersection_adist + intersection_bdist;
+                    shortest = match shortest {
+                        Some(dist) if dist > total_dist => Some(total_dist),
+                        Some(dist) => Some(dist),
+                        None => Some(total_dist),
+                    };
                 }
             }
         }
 
-        first
+        shortest.expect("Should have a shortest path")
     }
 }
 
@@ -193,14 +242,14 @@ fn part2_test() {
     assert_eq!(part2(String::from("R8,U5,L5,D3\nU7,R6,D4,L4")), "30");
 
     assert_eq!(
-        part1(String::from(
+        part2(String::from(
             "R75,D30,R83,U83,L12,D49,R71,U7,L72\nU62,R66,U55,R34,D71,R55,D58,R83"
         )),
         "610"
     );
 
     assert_eq!(
-        part1(String::from(
+        part2(String::from(
             "R98,U47,R26,D63,R33,U87,L62,D20,R33,U53,R51\nU98,R91,D20,R16,D67,R40,U7,R15,U6,R7"
         )),
         "410"
