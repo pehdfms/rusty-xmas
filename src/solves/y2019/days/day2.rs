@@ -16,27 +16,26 @@ fn part1(data: String) -> String {
     computer.replace(1, 12);
     computer.replace(2, 2);
 
-    while computer.step() {}
+    computer.run();
 
     computer.read(0).to_string()
 }
 
 fn part2(data: String) -> String {
     let memory = parse_memory(data);
-    let mut computer = IntcodeComputer::new(memory);
 
     for noun in 0..=99 {
         for verb in 0..=99 {
+            let mut computer = IntcodeComputer::new(memory.clone());
+
             computer.replace(1, noun);
             computer.replace(2, verb);
 
-            while computer.step() {}
+            computer.run();
 
             if computer.read(0) == 19690720 {
                 return (100 * noun + verb).to_string();
             }
-
-            computer.reset();
         }
     }
 

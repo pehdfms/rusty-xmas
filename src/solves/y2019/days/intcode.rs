@@ -1,5 +1,4 @@
 pub struct IntcodeComputer {
-    initial_memory: Vec<i32>,
     memory: Vec<i32>,
     pointer: usize,
     finished: bool,
@@ -10,7 +9,6 @@ impl IntcodeComputer {
         IntcodeComputer {
             pointer: 0,
             finished: memory.is_empty(),
-            initial_memory: memory.clone(),
             memory,
         }
     }
@@ -21,12 +19,6 @@ impl IntcodeComputer {
 
     pub fn replace(&mut self, position: usize, value: i32) {
         self.memory[position] = value;
-    }
-
-    pub fn reset(&mut self) {
-        self.memory = self.initial_memory.clone();
-        self.finished = false;
-        self.pointer = 0;
     }
 
     fn pop(&mut self) -> i32 {
@@ -62,6 +54,10 @@ impl IntcodeComputer {
         };
 
         true
+    }
+
+    pub fn run(&mut self) {
+        while self.step() {}
     }
 
     #[cfg(test)]
@@ -113,7 +109,7 @@ fn should_multiply() {
 fn should_handle_multiple_ops() {
     let mut computer = IntcodeComputer::new(vec![1, 1, 1, 4, 99, 5, 6, 0, 99]);
 
-    while computer.step() {}
+    computer.run();
 
     assert_eq!(computer.read_memory(), &vec![30, 1, 1, 4, 2, 5, 6, 0, 99]);
 }
@@ -122,35 +118,12 @@ fn should_handle_multiple_ops() {
 fn should_handle_long_source() {
     let mut computer = IntcodeComputer::new(vec![1, 9, 10, 3, 2, 3, 11, 0, 99, 30, 40, 50]);
 
-    while computer.step() {}
+    computer.run();
 
     assert_eq!(
         computer.read_memory(),
         &vec![3500, 9, 10, 70, 2, 3, 11, 0, 99, 30, 40, 50]
     );
-}
-
-#[test]
-fn should_handle_reset_without_corruption() {
-    let start_memory = vec![1, 9, 10, 3, 2, 3, 11, 0, 99, 30, 40, 50];
-    let mut computer = IntcodeComputer::new(start_memory.clone());
-
-    while computer.step() {}
-    computer.reset();
-
-    assert_eq!(computer.read_memory(), &start_memory);
-}
-
-#[test]
-fn should_reset_completion_status() {
-    let start_memory = vec![1, 9, 10, 3, 2, 3, 11, 0, 99, 30, 40, 50];
-    let mut computer = IntcodeComputer::new(start_memory.clone());
-
-    while computer.step() {}
-    computer.reset();
-    while computer.step() {}
-
-    assert_ne!(computer.read_memory(), &start_memory);
 }
 
 #[test]
