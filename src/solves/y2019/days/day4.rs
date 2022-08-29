@@ -3,7 +3,7 @@ use std::ops::Range;
 use crate::solves::year::AdventOfCodeDay;
 
 fn get_range(data: String) -> Range<i32> {
-    let range: Vec<&str> = data.split("-").collect();
+    let range: Vec<&str> = data.split('-').collect();
 
     let start = range[0]
         .trim()
@@ -68,16 +68,14 @@ fn validate_password(password: &str, validate_groups: bool) -> bool {
 }
 
 fn part1(data: String) -> String {
-    let result = get_range(data)
+    get_range(data)
         .filter(|item| validate_password(&item.to_string(), false))
         .count()
-        .to_string();
-
-    result
+        .to_string()
 }
 
 fn part2(data: String) -> String {
-    let result = get_range(data)
+    get_range(data)
         .filter(|item| {
             if validate_password(&item.to_string(), true) {
                 return true;
@@ -86,9 +84,7 @@ fn part2(data: String) -> String {
             false
         })
         .count()
-        .to_string();
-
-    result
+        .to_string()
 }
 
 #[test]
