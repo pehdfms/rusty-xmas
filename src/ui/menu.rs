@@ -22,8 +22,7 @@ where
     options: BTreeMap<i32, MenuOption<'inner>>,
 }
 
-impl<'inner, 'outer> Menu<'inner, 'outer>
-{
+impl<'inner, 'outer> Menu<'inner, 'outer> {
     pub fn new(title: impl Display + 'outer) -> Menu<'inner, 'outer> {
         Menu {
             content: Box::new(title),
