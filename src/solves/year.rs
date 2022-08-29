@@ -6,13 +6,13 @@ pub enum DayProgress {
     FullySolved,
 }
 
-pub struct AdventOfCodeDay {
-    pub name: &'static str,
+pub struct AdventOfCodeDay<'a> {
+    pub name: &'a str,
     pub part1: SolveFunction,
     pub part2: SolveFunction,
 }
 
-impl AdventOfCodeDay {
+impl AdventOfCodeDay<'_> {
     pub fn progress(&self) -> DayProgress {
         match (self.part1, self.part2) {
             (Some(_), Some(_)) => DayProgress::FullySolved,
@@ -23,7 +23,7 @@ impl AdventOfCodeDay {
     }
 }
 
-pub struct AdventOfCodeYear {
+pub struct AdventOfCodeYear<'a> {
     pub year: u32,
-    pub days: Vec<AdventOfCodeDay>,
+    pub days: Vec<AdventOfCodeDay<'a>>,
 }

@@ -10,7 +10,7 @@ use std::{
 pub mod y2019;
 pub mod year;
 
-pub fn get_years() -> Vec<AdventOfCodeYear> {
+pub fn get_years<'a>() -> Vec<AdventOfCodeYear<'a>> {
     vec![get_2019_solutions()]
 }
 
