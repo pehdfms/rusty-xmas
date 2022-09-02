@@ -9,7 +9,8 @@ pub struct IntcodeComputer {
     pointer: usize,
     finished: bool,
     modes: Vec<Mode>,
-    input: Option<i32>,
+    input: Vec<i32>,
+    input_pointer: usize,
     output: Vec<i32>,
 }
 
@@ -20,7 +21,8 @@ impl IntcodeComputer {
             finished: memory.is_empty(),
             memory,
             modes: Vec::default(),
-            input: None,
+            input: Vec::default(),
+            input_pointer: 0,
             output: Vec::default(),
         }
     }
@@ -31,13 +33,21 @@ impl IntcodeComputer {
             finished: memory.is_empty(),
             memory: Self::parse(memory),
             modes: Vec::default(),
-            input: None,
+            input: Vec::default(),
+            input_pointer: 0,
             output: Vec::default(),
         }
     }
 
-    pub fn set_input(&mut self, input: i32) {
-        self.input = Some(input);
+    fn get_input(&mut self) -> i32 {
+        let result = self.input[self.input_pointer];
+        self.input_pointer += 1;
+
+        result
+    }
+
+    pub fn add_input(&mut self, input: i32) {
+        self.input.push(input);
     }
 
     pub fn read_outputs(&self) -> &Vec<i32> {
@@ -167,11 +177,8 @@ impl IntcodeComputer {
                 this.replace(out as usize, lhs * rhs)
             }),
             3 => self.unary_operation(true, |this, arg| {
-                this.replace(
-                    arg as usize,
-                    this.input
-                        .expect("Should have input set before call to input opcode"),
-                )
+                let input = this.get_input();
+                this.replace(arg as usize, input)
             }),
             4 => self.unary_operation(false, |this, arg| this.output.push(arg)),
             5 => self.binary_operation(false, |this, lhs, rhs| {
@@ -285,7 +292,7 @@ fn should_handle_negatives() {
 fn should_handle_io() {
     let mut computer = IntcodeComputer::new(vec![3, 0, 4, 0, 99]);
 
-    computer.set_input(10);
+    computer.add_input(10);
     computer.run();
 
     assert_eq!(computer.output[0], 10)
@@ -333,7 +340,7 @@ fn should_handle_diagnostics() {
         677, 224, 1002, 223, 2, 223, 1005, 224, 674, 101, 1, 223, 223, 4, 223, 99, 226,
     ]);
 
-    computer.set_input(1);
+    computer.add_input(1);
     computer.run();
 
     let outputs = computer.read_outputs();
@@ -345,7 +352,7 @@ fn should_handle_diagnostics() {
 fn should_handle_equal_to_in_position_mode() {
     let mut computer = IntcodeComputer::new(vec![3, 9, 8, 9, 10, 9, 4, 9, 99, -1, 8]);
 
-    computer.set_input(8);
+    computer.add_input(8);
     computer.run();
 
     assert_eq!(computer.read_outputs()[0], 1)
@@ -355,7 +362,7 @@ fn should_handle_equal_to_in_position_mode() {
 fn should_handle_less_than_in_position_mode() {
     let mut computer = IntcodeComputer::new(vec![3, 9, 7, 9, 10, 9, 4, 9, 99, -1, 8]);
 
-    computer.set_input(8);
+    computer.add_input(8);
     computer.run();
 
     assert_eq!(computer.read_outputs()[0], 0)
@@ -365,7 +372,7 @@ fn should_handle_less_than_in_position_mode() {
 fn should_handle_equal_to_in_immediate_mode() {
     let mut computer = IntcodeComputer::new(vec![3, 3, 1108, -1, 8, 3, 4, 3, 99]);
 
-    computer.set_input(8);
+    computer.add_input(8);
     computer.run();
 
     assert_eq!(computer.read_outputs()[0], 1)
@@ -375,7 +382,7 @@ fn should_handle_equal_to_in_immediate_mode() {
 fn should_handle_less_than_in_immediate_mode() {
     let mut computer = IntcodeComputer::new(vec![3, 3, 1107, -1, 8, 3, 4, 3, 99]);
 
-    computer.set_input(8);
+    computer.add_input(8);
     computer.run();
 
     assert_eq!(computer.read_outputs()[0], 0)
@@ -387,7 +394,7 @@ fn should_handle_jump_in_position_mode() {
         3, 12, 6, 12, 15, 1, 13, 14, 13, 4, 13, 99, -1, 0, 1, 9,
     ]);
 
-    computer.set_input(-20);
+    computer.add_input(-20);
     computer.run();
 
     assert_eq!(computer.read_outputs()[0], 1)
@@ -397,7 +404,7 @@ fn should_handle_jump_in_position_mode() {
 fn should_handle_jump_in_immediate_mode() {
     let mut computer = IntcodeComputer::new(vec![3, 3, 1105, -1, 9, 1101, 0, 0, 12, 4, 12, 99, 1]);
 
-    computer.set_input(-20);
+    computer.add_input(-20);
     computer.run();
 
     assert_eq!(computer.read_outputs()[0], 1)

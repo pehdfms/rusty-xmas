@@ -5,7 +5,7 @@ use super::intcode::IntcodeComputer;
 fn part1(data: String) -> String {
     let mut computer = IntcodeComputer::from_string(&data);
 
-    computer.set_input(1);
+    computer.add_input(1);
 
     computer.run();
 
@@ -15,7 +15,7 @@ fn part1(data: String) -> String {
 fn part2(data: String) -> String {
     let mut computer = IntcodeComputer::from_string(&data);
 
-    computer.set_input(5);
+    computer.add_input(5);
 
     computer.run();
 
