@@ -22,20 +22,21 @@ pub fn new_menu() {
     banner();
 }
 
-pub fn get_stdin_number() -> Option<i32> {
+#[must_use]
+pub fn get_stdin_number() -> Option<i64> {
     let mut answer = String::new();
 
     io::stdin()
         .read_line(&mut answer)
         .expect("Failed to read line");
 
-    match answer.trim().parse() {
-        Ok(res) => Some(res),
-        _ => {
-            warn("Please type a number!");
-            None
-        }
+    if let Ok(res) = answer.trim().parse() {
+        return Some(res);
     }
+
+    warn("Please type a number!");
+
+    None
 }
 
 pub fn invalid_option() {

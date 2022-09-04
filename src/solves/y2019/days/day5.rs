@@ -1,9 +1,9 @@
 use crate::solves::year::AdventOfCodeDay;
 
-use super::intcode::IntcodeComputer;
+use super::intcode::Computer;
 
-fn part1(data: String) -> String {
-    let mut computer = IntcodeComputer::from_string(&data);
+fn part1(data: &str) -> String {
+    let mut computer = Computer::from_string(data);
 
     computer.add_input(1);
 
@@ -12,8 +12,8 @@ fn part1(data: String) -> String {
     computer.read_outputs().last().unwrap().to_string()
 }
 
-fn part2(data: String) -> String {
-    let mut computer = IntcodeComputer::from_string(&data);
+fn part2(data: &str) -> String {
+    let mut computer = Computer::from_string(data);
 
     computer.add_input(5);
 

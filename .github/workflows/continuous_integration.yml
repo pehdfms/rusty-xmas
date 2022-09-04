@@ -46,4 +46,6 @@ jobs:
       - name: Check Formatting
         run: cargo fmt --all --check
       - name: Check Clippy
-        run: cargo clippy -- --deny warnings
+        run: cargo clippy --benches --tests --all-features \
+             -- --deny warnings -D clippy::pedantic -D clippy::nursery \
+             -A clippy::module-name-repetitions -A clippy::similar-names

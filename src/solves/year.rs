@@ -1,4 +1,4 @@
-pub type SolveFunction = Option<fn(data: String) -> String>;
+pub type SolveFunction = Option<fn(data: &str) -> String>;
 
 pub enum DayProgress {
     Unsolved,
@@ -13,6 +13,13 @@ pub struct AdventOfCodeDay<'a> {
 }
 
 impl AdventOfCodeDay<'_> {
+    #[must_use]
+    /// # Panics
+    /// Advent of Code days are separated into two parts, with the second
+    /// one being unlocked only after you finish the first. It shouldn't
+    /// be possible for only Part 2 to be solved as it indicates that
+    /// part 1 has just not been added. This requirement can be relaxed
+    /// but it implies an error most of the time.
     pub fn progress(&self) -> DayProgress {
         match (self.part1, self.part2) {
             (Some(_), Some(_)) => DayProgress::FullySolved,
@@ -24,6 +31,6 @@ impl AdventOfCodeDay<'_> {
 }
 
 pub struct AdventOfCodeYear<'a> {
-    pub year: u32,
+    pub year: u64,
     pub days: Vec<AdventOfCodeDay<'a>>,
 }

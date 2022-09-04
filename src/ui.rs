@@ -33,7 +33,7 @@ pub fn start_menu() {
             latest_day,
             &years[latest_year].days[latest_day],
             years[latest_year].year,
-        )
+        );
     });
 
     menu.color(-2, colored::Color::Green);
@@ -42,7 +42,7 @@ pub fn start_menu() {
 
     years.iter().enumerate().for_each(|(idx, year)| {
         menu.add(
-            (idx + 1) as i32,
+            (idx + 1) as i64,
             {
                 let mut full_solve_count = 0;
                 let mut half_solve_count = 0;
@@ -63,7 +63,7 @@ pub fn start_menu() {
                 )
             },
             || year_menu(year),
-        )
+        );
     });
 
     menu.display();
@@ -82,7 +82,7 @@ fn year_menu(year: &AdventOfCodeYear) {
 
     year.days.iter().enumerate().for_each(|(idx, day)| {
         menu.add(
-            (idx + 1) as i32,
+            (idx + 1) as i64,
             format!(
                 "Day [{}] - {} - {}",
                 idx + 1,
@@ -94,13 +94,13 @@ fn year_menu(year: &AdventOfCodeYear) {
                 }
             ),
             move || day_menu(idx, day, year.year),
-        )
+        );
     });
 
     menu.display();
 }
 
-fn day_menu(idx: usize, day: &AdventOfCodeDay, year: u32) {
+fn day_menu(idx: usize, day: &AdventOfCodeDay, year: u64) {
     let progress = day.progress();
 
     let part2_solved = matches!(progress, DayProgress::FullySolved);
@@ -113,10 +113,10 @@ fn day_menu(idx: usize, day: &AdventOfCodeDay, year: u32) {
         "Solve",
         || part1_solved,
         || {
-            let mut results = run_solve(day.part1, year, idx as u32);
+            let mut results = run_solve(day.part1, year, idx as u64);
 
             if part2_solved {
-                results = format!("{}\n{}", results, run_solve(day.part2, year, idx as u32));
+                results = format!("{}\n{}", results, run_solve(day.part2, year, idx as u64));
             }
 
             let mut part_menu = Menu::new(results);
@@ -132,7 +132,7 @@ fn day_menu(idx: usize, day: &AdventOfCodeDay, year: u32) {
         "Part 1",
         || part1_solved,
         || {
-            let mut part_menu = Menu::new(run_solve(day.part1, year, idx as u32));
+            let mut part_menu = Menu::new(run_solve(day.part1, year, idx as u64));
 
             part_menu.add_back_option("Go Back");
             part_menu.display();
@@ -144,7 +144,7 @@ fn day_menu(idx: usize, day: &AdventOfCodeDay, year: u32) {
         "Part 2",
         || part2_solved,
         || {
-            let mut part_menu = Menu::new(run_solve(day.part2, year, idx as u32));
+            let mut part_menu = Menu::new(run_solve(day.part2, year, idx as u64));
 
             part_menu.add_back_option("Go Back");
             part_menu.display();
@@ -156,11 +156,11 @@ fn day_menu(idx: usize, day: &AdventOfCodeDay, year: u32) {
     menu.display();
 }
 
-fn run_solve(solve_function: SolveFunction, year: u32, day: u32) -> String {
+fn run_solve(solve_function: SolveFunction, year: u64, day: u64) -> String {
     if let Ok(data) = get_data(year, day + 1) {
         let result = solve_function
             .expect("run_solve is only called when we know solve_function is Ok()")(
-            data
+            &data
         );
 
         format!("Result: {result}")

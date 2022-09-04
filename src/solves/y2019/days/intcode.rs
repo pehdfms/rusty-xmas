@@ -4,19 +4,19 @@ enum Mode {
     Immediate = 1,
 }
 
-pub struct IntcodeComputer {
-    memory: Vec<i32>,
+pub struct Computer {
+    memory: Vec<i64>,
     pointer: usize,
     finished: bool,
     modes: Vec<Mode>,
-    input: Vec<i32>,
+    input: Vec<i64>,
     input_pointer: usize,
-    output: Vec<i32>,
+    output: Vec<i64>,
 }
 
-impl IntcodeComputer {
-    pub fn new(memory: Vec<i32>) -> IntcodeComputer {
-        IntcodeComputer {
+impl Computer {
+    pub fn new(memory: Vec<i64>) -> Self {
+        Self {
             pointer: 0,
             finished: memory.is_empty(),
             memory,
@@ -27,8 +27,8 @@ impl IntcodeComputer {
         }
     }
 
-    pub fn from_string(memory: &str) -> IntcodeComputer {
-        IntcodeComputer {
+    pub fn from_string(memory: &str) -> Self {
+        Self {
             pointer: 0,
             finished: memory.is_empty(),
             memory: Self::parse(memory),
@@ -39,22 +39,26 @@ impl IntcodeComputer {
         }
     }
 
-    fn get_input(&mut self) -> i32 {
+    fn get_input(&mut self) -> i64 {
         let result = self.input[self.input_pointer];
         self.input_pointer += 1;
 
         result
     }
 
-    pub fn add_input(&mut self, input: i32) {
+    fn convert_usize(n: i64) -> usize {
+        usize::try_from(n).expect("Function expected i64 to be unsigned, got negative!")
+    }
+
+    pub fn add_input(&mut self, input: i64) {
         self.input.push(input);
     }
 
-    pub fn read_outputs(&self) -> &Vec<i32> {
+    pub const fn read_outputs(&self) -> &Vec<i64> {
         &self.output
     }
 
-    pub fn parse(memory: &str) -> Vec<i32> {
+    pub fn parse(memory: &str) -> Vec<i64> {
         memory
             .trim()
             .split(',')
@@ -65,22 +69,22 @@ impl IntcodeComputer {
             .collect()
     }
 
-    pub fn read(&self, position: usize) -> i32 {
+    pub fn read(&self, position: usize) -> i64 {
         self.memory[position]
     }
 
-    pub fn replace(&mut self, position: usize, value: i32) {
+    pub fn replace(&mut self, position: usize, value: i64) {
         self.memory[position] = value;
     }
 
-    fn pop(&mut self) -> i32 {
+    fn pop(&mut self) -> i64 {
         let value = self.read(self.pointer);
         self.pointer += 1;
 
         value
     }
 
-    fn pop_arg(&mut self) -> i32 {
+    fn pop_arg(&mut self) -> i64 {
         let mode = self
             .modes
             .pop()
@@ -88,7 +92,7 @@ impl IntcodeComputer {
 
         match mode {
             Mode::Position => {
-                let arg = self.pop() as usize;
+                let arg = Self::convert_usize(self.pop());
                 self.read(arg)
             }
             Mode::Immediate => self.pop(),
@@ -97,7 +101,7 @@ impl IntcodeComputer {
 
     fn unary_operation<F>(&mut self, write: bool, f: F)
     where
-        F: FnOnce(&mut Self, i32),
+        F: FnOnce(&mut Self, i64),
     {
         self.pad_modes(1);
         let arg = if write { self.pop() } else { self.pop_arg() };
@@ -107,7 +111,7 @@ impl IntcodeComputer {
 
     fn binary_operation<F>(&mut self, write: bool, f: F)
     where
-        F: FnOnce(&mut Self, i32, i32),
+        F: FnOnce(&mut Self, i64, i64),
     {
         self.pad_modes(2);
 
@@ -119,7 +123,7 @@ impl IntcodeComputer {
 
     fn ternary_operation<F>(&mut self, write: bool, f: F)
     where
-        F: FnOnce(&mut Self, i32, i32, i32),
+        F: FnOnce(&mut Self, i64, i64, i64),
     {
         self.pad_modes(3);
 
@@ -127,7 +131,7 @@ impl IntcodeComputer {
         let mhs = self.pop_arg();
         let rhs = if write { self.pop() } else { self.pop_arg() };
 
-        f(self, lhs, mhs, rhs)
+        f(self, lhs, mhs, rhs);
     }
 
     fn pad_modes(&mut self, count: usize) {
@@ -137,7 +141,7 @@ impl IntcodeComputer {
         self.modes.splice(0..0, padding.iter().cloned());
     }
 
-    fn parse_opcode(&mut self) -> i32 {
+    fn parse_opcode(&mut self) -> i64 {
         let instruction = self.pop().to_string();
         let instruction_length = instruction.len();
 
@@ -159,7 +163,7 @@ impl IntcodeComputer {
             })
             .collect();
 
-        opcode.parse().expect("Opcode should parse as i32")
+        opcode.parse().expect("Opcode should parse as i64")
     }
 
     pub fn step(&mut self) -> bool {
@@ -171,27 +175,35 @@ impl IntcodeComputer {
 
         match opcode {
             1 => self.ternary_operation(true, |this, lhs, rhs, out| {
-                this.replace(out as usize, lhs + rhs)
+                this.replace(Self::convert_usize(out), lhs + rhs);
             }),
             2 => self.ternary_operation(true, |this, lhs, rhs, out| {
-                this.replace(out as usize, lhs * rhs)
+                this.replace(Self::convert_usize(out), lhs * rhs);
             }),
             3 => self.unary_operation(true, |this, arg| {
                 let input = this.get_input();
-                this.replace(arg as usize, input)
+                this.replace(Self::convert_usize(arg), input);
             }),
             4 => self.unary_operation(false, |this, arg| this.output.push(arg)),
             5 => self.binary_operation(false, |this, lhs, rhs| {
-                this.pointer = if lhs != 0 { rhs as usize } else { this.pointer }
+                this.pointer = if lhs == 0 {
+                    this.pointer
+                } else {
+                    Self::convert_usize(rhs)
+                };
             }),
             6 => self.binary_operation(false, |this, lhs, rhs| {
-                this.pointer = if lhs == 0 { rhs as usize } else { this.pointer }
+                this.pointer = if lhs == 0 {
+                    Self::convert_usize(rhs)
+                } else {
+                    this.pointer
+                };
             }),
             7 => self.ternary_operation(true, |this, lhs, rhs, out| {
-                this.replace(out as usize, (lhs < rhs) as i32)
+                this.replace(Self::convert_usize(out), i64::from(lhs < rhs));
             }),
             8 => self.ternary_operation(true, |this, lhs, rhs, out| {
-                this.replace(out as usize, (lhs == rhs) as i32)
+                this.replace(Self::convert_usize(out), i64::from(lhs == rhs));
             }),
             99 => self.finished = true,
             op => panic!("Found unexpected opcode: {op}!"),
@@ -205,14 +217,14 @@ impl IntcodeComputer {
     }
 
     #[cfg(test)]
-    fn read_memory(&self) -> &Vec<i32> {
+    fn read_memory(&self) -> &Vec<i64> {
         &self.memory
     }
 }
 
 #[test]
 fn should_not_modify_memory_on_creation() {
-    let computer = IntcodeComputer::new(vec![1, 2, 3, 4, 99]);
+    let computer = Computer::new(vec![1, 2, 3, 4, 99]);
     let memory = computer.read_memory();
 
     assert_eq!(&vec![1, 2, 3, 4, 99], memory);
@@ -221,13 +233,13 @@ fn should_not_modify_memory_on_creation() {
 #[test]
 #[should_panic(expected = "unexpected opcode")]
 fn should_panic_on_unexpected_opcode() {
-    let mut computer = IntcodeComputer::new(vec![31, 2, 1, 4, 99]);
+    let mut computer = Computer::new(vec![31, 2, 1, 4, 99]);
     computer.step();
 }
 
 #[test]
 fn should_add() {
-    let mut computer = IntcodeComputer::new(vec![1, 0, 0, 0, 99]);
+    let mut computer = Computer::new(vec![1, 0, 0, 0, 99]);
     computer.step();
 
     // Comparing the entire memory to make sure we're not corrupting memory.
@@ -239,7 +251,7 @@ fn should_add() {
 
 #[test]
 fn should_multiply() {
-    let mut computer = IntcodeComputer::new(vec![2, 3, 0, 3, 99]);
+    let mut computer = Computer::new(vec![2, 3, 0, 3, 99]);
     computer.step();
 
     // Comparing the entire memory to make sure we're not corrupting memory.
@@ -251,7 +263,7 @@ fn should_multiply() {
 
 #[test]
 fn should_handle_multiple_ops() {
-    let mut computer = IntcodeComputer::new(vec![1, 1, 1, 4, 99, 5, 6, 0, 99]);
+    let mut computer = Computer::new(vec![1, 1, 1, 4, 99, 5, 6, 0, 99]);
 
     computer.run();
 
@@ -260,7 +272,7 @@ fn should_handle_multiple_ops() {
 
 #[test]
 fn should_handle_long_source() {
-    let mut computer = IntcodeComputer::new(vec![1, 9, 10, 3, 2, 3, 11, 0, 99, 30, 40, 50]);
+    let mut computer = Computer::new(vec![1, 9, 10, 3, 2, 3, 11, 0, 99, 30, 40, 50]);
 
     computer.run();
 
@@ -272,7 +284,7 @@ fn should_handle_long_source() {
 
 #[test]
 fn should_handle_immediate_mode() {
-    let mut computer = IntcodeComputer::new(vec![1002, 4, 3, 4, 33]);
+    let mut computer = Computer::new(vec![1002, 4, 3, 4, 33]);
 
     computer.run();
 
@@ -281,7 +293,7 @@ fn should_handle_immediate_mode() {
 
 #[test]
 fn should_handle_negatives() {
-    let mut computer = IntcodeComputer::new(vec![1101, 100, -1, 4, 0]);
+    let mut computer = Computer::new(vec![1101, 100, -1, 4, 0]);
 
     computer.run();
 
@@ -290,7 +302,7 @@ fn should_handle_negatives() {
 
 #[test]
 fn should_handle_io() {
-    let mut computer = IntcodeComputer::new(vec![3, 0, 4, 0, 99]);
+    let mut computer = Computer::new(vec![3, 0, 4, 0, 99]);
 
     computer.add_input(10);
     computer.run();
@@ -301,7 +313,7 @@ fn should_handle_io() {
 #[test]
 fn should_handle_diagnostics() {
     // Very long input, it's the diagnostic input for d5p1
-    let mut computer = IntcodeComputer::new(vec![
+    let mut computer = Computer::new(vec![
         3, 225, 1, 225, 6, 6, 1100, 1, 238, 225, 104, 0, 1102, 91, 92, 225, 1102, 85, 13, 225, 1,
         47, 17, 224, 101, -176, 224, 224, 4, 224, 1002, 223, 8, 223, 1001, 224, 7, 224, 1, 223,
         224, 223, 1102, 79, 43, 225, 1102, 91, 79, 225, 1101, 94, 61, 225, 1002, 99, 42, 224, 1001,
@@ -350,7 +362,7 @@ fn should_handle_diagnostics() {
 
 #[test]
 fn should_handle_equal_to_in_position_mode() {
-    let mut computer = IntcodeComputer::new(vec![3, 9, 8, 9, 10, 9, 4, 9, 99, -1, 8]);
+    let mut computer = Computer::new(vec![3, 9, 8, 9, 10, 9, 4, 9, 99, -1, 8]);
 
     computer.add_input(8);
     computer.run();
@@ -360,7 +372,7 @@ fn should_handle_equal_to_in_position_mode() {
 
 #[test]
 fn should_handle_less_than_in_position_mode() {
-    let mut computer = IntcodeComputer::new(vec![3, 9, 7, 9, 10, 9, 4, 9, 99, -1, 8]);
+    let mut computer = Computer::new(vec![3, 9, 7, 9, 10, 9, 4, 9, 99, -1, 8]);
 
     computer.add_input(8);
     computer.run();
@@ -370,7 +382,7 @@ fn should_handle_less_than_in_position_mode() {
 
 #[test]
 fn should_handle_equal_to_in_immediate_mode() {
-    let mut computer = IntcodeComputer::new(vec![3, 3, 1108, -1, 8, 3, 4, 3, 99]);
+    let mut computer = Computer::new(vec![3, 3, 1108, -1, 8, 3, 4, 3, 99]);
 
     computer.add_input(8);
     computer.run();
@@ -380,7 +392,7 @@ fn should_handle_equal_to_in_immediate_mode() {
 
 #[test]
 fn should_handle_less_than_in_immediate_mode() {
-    let mut computer = IntcodeComputer::new(vec![3, 3, 1107, -1, 8, 3, 4, 3, 99]);
+    let mut computer = Computer::new(vec![3, 3, 1107, -1, 8, 3, 4, 3, 99]);
 
     computer.add_input(8);
     computer.run();
@@ -390,7 +402,7 @@ fn should_handle_less_than_in_immediate_mode() {
 
 #[test]
 fn should_handle_jump_in_position_mode() {
-    let mut computer = IntcodeComputer::new(vec![
+    let mut computer = Computer::new(vec![
         3, 12, 6, 12, 15, 1, 13, 14, 13, 4, 13, 99, -1, 0, 1, 9,
     ]);
 
@@ -402,7 +414,7 @@ fn should_handle_jump_in_position_mode() {
 
 #[test]
 fn should_handle_jump_in_immediate_mode() {
-    let mut computer = IntcodeComputer::new(vec![3, 3, 1105, -1, 9, 1101, 0, 0, 12, 4, 12, 99, 1]);
+    let mut computer = Computer::new(vec![3, 3, 1105, -1, 9, 1101, 0, 0, 12, 4, 12, 99, 1]);
 
     computer.add_input(-20);
     computer.run();
@@ -412,7 +424,7 @@ fn should_handle_jump_in_immediate_mode() {
 
 #[test]
 fn should_halt() {
-    let mut computer = IntcodeComputer::new(vec![99]);
+    let mut computer = Computer::new(vec![99]);
 
     assert!(computer.step()); // First run doesn't halt
     assert!(!computer.step()); // Second run halts

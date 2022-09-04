@@ -2,20 +2,20 @@ use std::ops::Range;
 
 use crate::solves::year::AdventOfCodeDay;
 
-fn get_range(data: String) -> Range<i32> {
+fn get_range(data: &str) -> Range<i64> {
     let range: Vec<&str> = data.split('-').collect();
 
     let start = range[0]
         .trim()
-        .parse::<i32>()
+        .parse::<i64>()
         .expect("End of range should be int")
-        .max(1e5 as i32);
+        .max(100_000);
 
     let end = range[1]
         .trim()
-        .parse::<i32>()
+        .parse::<i64>()
         .expect("End of range should be int")
-        .min(1e6 as i32 - 1);
+        .min(1_000_000);
 
     start..end
 }
@@ -43,11 +43,11 @@ fn validate_password(password: &str, validate_groups: bool) -> bool {
         if prev_char == current {
             continuation_count += 1;
             if !validate_groups {
-                has_adjacent_repeating = true
+                has_adjacent_repeating = true;
             }
         } else {
             if continuation_count == 2 && validate_groups {
-                has_adjacent_repeating = true
+                has_adjacent_repeating = true;
             }
 
             continuation_count = 1;
@@ -67,14 +67,14 @@ fn validate_password(password: &str, validate_groups: bool) -> bool {
     has_adjacent_repeating
 }
 
-fn part1(data: String) -> String {
+fn part1(data: &str) -> String {
     get_range(data)
         .filter(|item| validate_password(&item.to_string(), false))
         .count()
         .to_string()
 }
 
-fn part2(data: String) -> String {
+fn part2(data: &str) -> String {
     get_range(data)
         .filter(|item| {
             if validate_password(&item.to_string(), true) {

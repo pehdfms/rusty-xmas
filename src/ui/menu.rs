@@ -6,7 +6,7 @@ use crate::ui::utils::{get_stdin_number, invalid_option};
 
 use super::utils::new_menu;
 
-pub struct MenuOption<'inner> {
+struct MenuOption<'inner> {
     name: Box<dyn Display + 'inner>,
     color: Option<Color>,
     condition: Box<dyn Fn() -> bool + 'inner>,
@@ -19,7 +19,7 @@ where
     'inner: 'outer,
 {
     content: Box<dyn Display + 'outer>,
-    options: BTreeMap<i32, MenuOption<'inner>>,
+    options: BTreeMap<i64, MenuOption<'inner>>,
 }
 
 impl<'inner, 'outer> Menu<'inner, 'outer> {
@@ -30,20 +30,23 @@ impl<'inner, 'outer> Menu<'inner, 'outer> {
         }
     }
 
-    pub fn add(&mut self, option: i32, name: impl Display + 'inner, then: impl Fn() + 'inner) {
+    pub fn add(&mut self, option: i64, name: impl Display + 'inner, then: impl Fn() + 'inner) {
         self.add_conditional(option, name, Box::new(|| true), then);
     }
 
+    /// # Panics
+    /// On adding duplicate options
     pub fn add_conditional(
         &mut self,
-        option: i32,
+        option: i64,
         name: impl Display + 'inner,
         condition: impl Fn() -> bool + 'inner,
         then: impl Fn() + 'inner,
     ) {
-        if self.options.contains_key(&option) {
-            panic!("Tried to insert option {option} in Menu but found duplicate!");
-        }
+        assert!(
+            !self.options.contains_key(&option),
+            "Tried to insert option {option} in Menu but found duplicate!"
+        );
 
         self.options.insert(
             option,
@@ -57,13 +60,13 @@ impl<'inner, 'outer> Menu<'inner, 'outer> {
         );
     }
 
-    pub fn insert(&mut self, option: i32, name: impl Display + 'inner, then: impl Fn() + 'inner) {
+    pub fn insert(&mut self, option: i64, name: impl Display + 'inner, then: impl Fn() + 'inner) {
         self.insert_conditional(option, name, Box::new(|| true), then);
     }
 
     pub fn insert_conditional(
         &mut self,
-        option: i32,
+        option: i64,
         name: impl Display + 'inner,
         condition: impl Fn() -> bool + 'inner,
         then: impl Fn() + 'inner,
@@ -80,19 +83,22 @@ impl<'inner, 'outer> Menu<'inner, 'outer> {
         );
     }
 
-    pub fn remove(&mut self, option: i32) {
+    pub fn remove(&mut self, option: i64) {
         self.options.remove(&option);
     }
 
     pub fn add_back_option(&mut self, name: impl Display + 'inner) {
         self.add(0, name, || {});
-        let option = self.options.get_mut(&0).unwrap();
+        let option = self
+            .options
+            .get_mut(&0)
+            .expect("We've just created this option");
 
         option.color = Some(Color::Red);
         option.is_back_option = true;
     }
 
-    pub fn color(&mut self, option: i32, color: Color) {
+    pub fn color(&mut self, option: i64, color: Color) {
         self.options
             .get_mut(&option)
             .expect("Option should exist when coloring!")
@@ -110,11 +116,14 @@ impl<'inner, 'outer> Menu<'inner, 'outer> {
 
                 let to_print = format!("[{key}] - {}", option.name);
 
-                if let Some(color) = option.color {
-                    println!("{}", to_print.color(color))
-                } else {
-                    println!("[{key}] - {}", option.name);
-                }
+                option.color.map_or_else(
+                    || {
+                        println!("[{key}] - {}", option.name);
+                    },
+                    |color| {
+                        println!("{}", to_print.color(color));
+                    },
+                );
             }
 
             println!("Select an option:");
@@ -139,6 +148,6 @@ impl<'inner, 'outer> Menu<'inner, 'outer> {
             return;
         }
 
-        println!("{}", self.content)
+        println!("{}", self.content);
     }
 }

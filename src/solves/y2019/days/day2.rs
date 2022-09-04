@@ -1,9 +1,9 @@
 use crate::solves::year::AdventOfCodeDay;
 
-use super::intcode::IntcodeComputer;
+use super::intcode::Computer;
 
-fn part1(data: String) -> String {
-    let mut computer = IntcodeComputer::from_string(&data);
+fn part1(data: &str) -> String {
+    let mut computer = Computer::from_string(data);
 
     computer.replace(1, 12);
     computer.replace(2, 2);
@@ -13,19 +13,19 @@ fn part1(data: String) -> String {
     computer.read(0).to_string()
 }
 
-fn part2(data: String) -> String {
-    let memory = IntcodeComputer::parse(&data);
+fn part2(data: &str) -> String {
+    let memory = Computer::parse(data);
 
     for noun in 0..=99 {
         for verb in 0..=99 {
-            let mut computer = IntcodeComputer::new(memory.clone());
+            let mut computer = Computer::new(memory.clone());
 
             computer.replace(1, noun);
             computer.replace(2, verb);
 
             computer.run();
 
-            if computer.read(0) == 19690720 {
+            if computer.read(0) == 19_690_720 {
                 return (100 * noun + verb).to_string();
             }
         }
