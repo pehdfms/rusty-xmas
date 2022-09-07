@@ -27,7 +27,7 @@ fn part1(data: &str) -> String {
         .iter()
         .map(|perm| {
             perm.iter().fold(0, |prev, phase_setting| {
-                let mut computer = Computer::new(memory.clone());
+                let mut computer = Computer::from_vec(memory.clone());
 
                 computer.add_input(*phase_setting);
                 computer.add_input(prev);
@@ -36,16 +36,53 @@ fn part1(data: &str) -> String {
                 *computer
                     .read_outputs()
                     .first()
-                    .expect("Output should exist")
+                    .expect("Output should exist!")
             })
         })
         .max()
-        .expect("Max thruster signal should exist")
+        .expect("Max thruster signal should exist!")
         .to_string()
 }
 
 fn part2(data: &str) -> String {
-    data.to_string()
+    let memory = Computer::parse(data);
+
+    non_repeating_permutations(&[5, 6, 7, 8, 9])
+        .iter()
+        .map(|perm| {
+            let mut amplifiers = vec![];
+            (0..5).for_each(|_| amplifiers.push(Computer::from_vec(memory.clone())));
+            let amplifier_count = amplifiers.len();
+
+            perm.iter().enumerate().for_each(|(idx, phase_setting)| {
+                amplifiers[idx].add_input(*phase_setting);
+            });
+
+            let mut last_output = 0;
+            // I would really like to use cycle with fold here, but
+            // a) fold doesn't support early exit afaik
+            // b) iter_mut would require cloning each interpreter, not ideal
+            loop {
+                for idx in 0..amplifier_count {
+                    let amplifier = &mut amplifiers[idx];
+
+                    if amplifier.finished() {
+                        return last_output;
+                    }
+
+                    amplifier.add_input(last_output);
+                    amplifier.run();
+
+                    last_output = *amplifier
+                        .read_outputs()
+                        .last()
+                        .expect("Output should exist!");
+                }
+            }
+        })
+        .max()
+        .expect("Max thruster signal should exist!")
+        .to_string()
 }
 
 #[test]
@@ -69,10 +106,24 @@ fn part1_test() {
 }
 
 #[test]
-fn part2_test() {}
+fn part2_test() {
+    assert_eq!(
+        part2(
+            "3,26,1001,26,-4,26,3,27,1002,27,2,27,1,27,26,\n27,4,27,1001,28,-1,28,1005,28,6,99,0,0,5"
+        ),
+        "139629729"
+    );
+
+    assert_eq!(
+        part2(
+            "3,52,1001,52,-5,52,3,53,1,52,56,54,1007,54,5,55,1005,55,26,1001,54,\n-5,54,1105,1,12,1,53,54,53,1008,54,0,55,1001,55,1,55,2,53,55,53,4,\n53,1001,56,-1,56,1005,56,6,99,0,0,0,0,10"
+        ),
+        "18216"
+    )
+}
 
 pub const SOLUTION: AdventOfCodeDay = AdventOfCodeDay {
     name: "Amplification Circuit",
     part1: Some(part1),
-    part2: None,
+    part2: Some(part2),
 };

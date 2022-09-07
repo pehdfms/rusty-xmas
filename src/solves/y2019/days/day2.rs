@@ -18,7 +18,7 @@ fn part2(data: &str) -> String {
 
     for noun in 0..=99 {
         for verb in 0..=99 {
-            let mut computer = Computer::new(memory.clone());
+            let mut computer = Computer::from_vec(memory.clone());
 
             computer.replace(1, noun);
             computer.replace(2, verb);

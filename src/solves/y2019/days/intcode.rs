@@ -8,42 +8,36 @@ pub struct Computer {
     memory: Vec<i64>,
     pointer: usize,
     finished: bool,
+    blocked: bool,
     modes: Vec<Mode>,
-    input: Vec<i64>,
+    inputs: Vec<i64>,
     input_pointer: usize,
-    output: Vec<i64>,
+    outputs: Vec<i64>,
 }
 
 impl Computer {
-    pub fn new(memory: Vec<i64>) -> Self {
+    pub fn from_vec(memory: Vec<i64>) -> Self {
         Self {
             pointer: 0,
             finished: memory.is_empty(),
+            blocked: false,
             memory,
             modes: Vec::default(),
-            input: Vec::default(),
+            inputs: Vec::default(),
             input_pointer: 0,
-            output: Vec::default(),
+            outputs: Vec::default(),
         }
     }
 
     pub fn from_string(memory: &str) -> Self {
-        Self {
-            pointer: 0,
-            finished: memory.is_empty(),
-            memory: Self::parse(memory),
-            modes: Vec::default(),
-            input: Vec::default(),
-            input_pointer: 0,
-            output: Vec::default(),
-        }
+        Self::from_vec(Self::parse(memory))
     }
 
-    fn get_input(&mut self) -> i64 {
-        let result = self.input[self.input_pointer];
+    fn get_input(&mut self) -> Option<i64> {
+        let result = self.inputs.get(self.input_pointer)?;
         self.input_pointer += 1;
 
-        result
+        Some(*result)
     }
 
     fn convert_usize(n: i64) -> usize {
@@ -51,17 +45,19 @@ impl Computer {
     }
 
     pub fn add_input(&mut self, input: i64) {
-        self.input.push(input);
+        self.inputs.push(input);
+        self.blocked = false;
     }
 
     pub const fn read_outputs(&self) -> &Vec<i64> {
-        &self.output
+        &self.outputs
     }
 
     pub fn parse(memory: &str) -> Vec<i64> {
         memory
             .trim()
             .replace(' ', "")
+            .replace('\n', "")
             .split(',')
             .map(|n| {
                 n.parse()
@@ -98,6 +94,10 @@ impl Computer {
             }
             Mode::Immediate => self.pop(),
         }
+    }
+
+    fn unwind(&mut self, count: usize) {
+        self.pointer -= count;
     }
 
     fn unary_operation<F>(&mut self, write: bool, f: F)
@@ -168,8 +168,12 @@ impl Computer {
     }
 
     pub fn step(&mut self) -> bool {
-        if self.finished {
+        if self.finished || self.blocked {
             return false;
+        }
+
+        if self.pointer >= self.memory.len() {
+            panic!("Broke out of memory without halting! Did you forget to add a halt instruction?")
         }
 
         let opcode = self.parse_opcode();
@@ -186,10 +190,15 @@ impl Computer {
             // Input
             3 => self.unary_operation(true, |this, arg| {
                 let input = this.get_input();
-                this.replace(Self::convert_usize(arg), input);
+                if let Some(raw_input) = input {
+                    this.replace(Self::convert_usize(arg), raw_input);
+                } else {
+                    this.blocked = true;
+                    this.unwind(2);
+                }
             }),
             // Output
-            4 => self.unary_operation(false, |this, arg| this.output.push(arg)),
+            4 => self.unary_operation(false, |this, arg| this.outputs.push(arg)),
             // Jump if not zero
             5 => self.binary_operation(false, |this, lhs, rhs| {
                 this.pointer = if lhs == 0 {
@@ -230,11 +239,19 @@ impl Computer {
     fn read_memory(&self) -> &Vec<i64> {
         &self.memory
     }
+
+    pub const fn finished(&self) -> bool {
+        self.finished
+    }
+
+    pub const fn blocked(&self) -> bool {
+        self.blocked
+    }
 }
 
 #[test]
 fn should_not_modify_memory_on_creation() {
-    let computer = Computer::new(vec![1, 2, 3, 4, 99]);
+    let computer = Computer::from_vec(vec![1, 2, 3, 4, 99]);
     let memory = computer.read_memory();
 
     assert_eq!(&vec![1, 2, 3, 4, 99], memory);
@@ -243,13 +260,13 @@ fn should_not_modify_memory_on_creation() {
 #[test]
 #[should_panic(expected = "unexpected opcode")]
 fn should_panic_on_unexpected_opcode() {
-    let mut computer = Computer::new(vec![31, 2, 1, 4, 99]);
+    let mut computer = Computer::from_vec(vec![31, 2, 1, 4, 99]);
     computer.step();
 }
 
 #[test]
 fn should_generate_from_string() {
-    let vec_computer = Computer::new(vec![1, 0, 0, 0, 99]);
+    let vec_computer = Computer::from_vec(vec![1, 0, 0, 0, 99]);
     let string_computer = Computer::from_string("1, 0, 0, 0, 99");
 
     assert_eq!(vec_computer.read_memory(), string_computer.read_memory());
@@ -257,7 +274,7 @@ fn should_generate_from_string() {
 
 #[test]
 fn should_add() {
-    let mut computer = Computer::new(vec![1, 0, 0, 0, 99]);
+    let mut computer = Computer::from_vec(vec![1, 0, 0, 0, 99]);
     computer.step();
 
     // Comparing the entire memory to make sure we're not corrupting memory.
@@ -269,7 +286,7 @@ fn should_add() {
 
 #[test]
 fn should_multiply() {
-    let mut computer = Computer::new(vec![2, 3, 0, 3, 99]);
+    let mut computer = Computer::from_vec(vec![2, 3, 0, 3, 99]);
     computer.step();
 
     // Comparing the entire memory to make sure we're not corrupting memory.
@@ -281,7 +298,7 @@ fn should_multiply() {
 
 #[test]
 fn should_handle_multiple_ops() {
-    let mut computer = Computer::new(vec![1, 1, 1, 4, 99, 5, 6, 0, 99]);
+    let mut computer = Computer::from_vec(vec![1, 1, 1, 4, 99, 5, 6, 0, 99]);
 
     computer.run();
 
@@ -290,7 +307,7 @@ fn should_handle_multiple_ops() {
 
 #[test]
 fn should_handle_long_source() {
-    let mut computer = Computer::new(vec![1, 9, 10, 3, 2, 3, 11, 0, 99, 30, 40, 50]);
+    let mut computer = Computer::from_vec(vec![1, 9, 10, 3, 2, 3, 11, 0, 99, 30, 40, 50]);
 
     computer.run();
 
@@ -303,14 +320,14 @@ fn should_handle_long_source() {
 #[test]
 #[should_panic]
 fn should_panic_on_unexpected_mode() {
-    let mut computer = Computer::new(vec![9002, 4, 3, 4, 33]);
+    let mut computer = Computer::from_vec(vec![9002, 4, 3, 4, 33]);
 
     computer.run();
 }
 
 #[test]
 fn should_handle_immediate_mode() {
-    let mut computer = Computer::new(vec![1002, 4, 3, 4, 33]);
+    let mut computer = Computer::from_vec(vec![1002, 4, 3, 4, 33]);
 
     computer.run();
 
@@ -319,7 +336,7 @@ fn should_handle_immediate_mode() {
 
 #[test]
 fn should_handle_negatives() {
-    let mut computer = Computer::new(vec![1101, 100, -1, 4, 0]);
+    let mut computer = Computer::from_vec(vec![1101, 100, -1, 4, 0]);
 
     computer.run();
 
@@ -328,18 +345,36 @@ fn should_handle_negatives() {
 
 #[test]
 fn should_handle_io() {
-    let mut computer = Computer::new(vec![3, 0, 4, 0, 99]);
+    let mut computer = Computer::from_vec(vec![3, 0, 4, 0, 99]);
 
     computer.add_input(10);
     computer.run();
 
-    assert_eq!(computer.output[0], 10);
+    assert_eq!(computer.outputs[0], 10);
+}
+
+#[test]
+fn should_handle_io_blocking() {
+    let mut computer = Computer::from_vec(vec![3, 0, 3, 1, 4, 1, 99]);
+
+    computer.run();
+    assert!(computer.read_outputs().is_empty());
+    assert!(computer.blocked());
+
+    computer.add_input(10);
+    computer.run();
+    assert!(computer.read_outputs().is_empty());
+    assert!(computer.blocked());
+
+    computer.add_input(10);
+    computer.run();
+    assert!(computer.finished());
 }
 
 #[test]
 fn should_handle_diagnostics() {
     // Very long input, it's the diagnostic input for d5p1
-    let mut computer = Computer::new(vec![
+    let mut computer = Computer::from_vec(vec![
         3, 225, 1, 225, 6, 6, 1100, 1, 238, 225, 104, 0, 1102, 91, 92, 225, 1102, 85, 13, 225, 1,
         47, 17, 224, 101, -176, 224, 224, 4, 224, 1002, 223, 8, 223, 1001, 224, 7, 224, 1, 223,
         224, 223, 1102, 79, 43, 225, 1102, 91, 79, 225, 1101, 94, 61, 225, 1002, 99, 42, 224, 1001,
@@ -388,7 +423,7 @@ fn should_handle_diagnostics() {
 
 #[test]
 fn should_handle_equal_to_in_position_mode() {
-    let mut computer = Computer::new(vec![3, 9, 8, 9, 10, 9, 4, 9, 99, -1, 8]);
+    let mut computer = Computer::from_vec(vec![3, 9, 8, 9, 10, 9, 4, 9, 99, -1, 8]);
 
     computer.add_input(8);
     computer.run();
@@ -398,7 +433,7 @@ fn should_handle_equal_to_in_position_mode() {
 
 #[test]
 fn should_handle_less_than_in_position_mode() {
-    let mut computer = Computer::new(vec![3, 9, 7, 9, 10, 9, 4, 9, 99, -1, 8]);
+    let mut computer = Computer::from_vec(vec![3, 9, 7, 9, 10, 9, 4, 9, 99, -1, 8]);
 
     computer.add_input(8);
     computer.run();
@@ -408,8 +443,8 @@ fn should_handle_less_than_in_position_mode() {
 
 #[test]
 fn should_handle_equal_to_in_immediate_mode() {
-    let mut a = Computer::new(vec![3, 3, 1108, -1, 8, 3, 4, 3, 99]);
-    let mut b = Computer::new(vec![3, 3, 1108, -1, 8, 3, 4, 3, 99]);
+    let mut a = Computer::from_vec(vec![3, 3, 1108, -1, 8, 3, 4, 3, 99]);
+    let mut b = Computer::from_vec(vec![3, 3, 1108, -1, 8, 3, 4, 3, 99]);
 
     a.add_input(8);
     a.run();
@@ -423,8 +458,8 @@ fn should_handle_equal_to_in_immediate_mode() {
 
 #[test]
 fn should_handle_less_than_in_immediate_mode() {
-    let mut a = Computer::new(vec![3, 3, 1107, -1, 8, 3, 4, 3, 99]);
-    let mut b = Computer::new(vec![3, 3, 1107, -1, 8, 3, 4, 3, 99]);
+    let mut a = Computer::from_vec(vec![3, 3, 1107, -1, 8, 3, 4, 3, 99]);
+    let mut b = Computer::from_vec(vec![3, 3, 1107, -1, 8, 3, 4, 3, 99]);
 
     a.add_input(8);
     a.run();
@@ -438,11 +473,11 @@ fn should_handle_less_than_in_immediate_mode() {
 
 #[test]
 fn should_handle_jump_in_position_mode() {
-    let mut a = Computer::new(vec![
+    let mut a = Computer::from_vec(vec![
         3, 12, 6, 12, 15, 1, 13, 14, 13, 4, 13, 99, -1, 0, 1, 9,
     ]);
 
-    let mut b = Computer::new(vec![
+    let mut b = Computer::from_vec(vec![
         3, 12, 6, 12, 15, 1, 13, 14, 13, 4, 13, 99, -1, 0, 1, 9,
     ]);
 
@@ -458,8 +493,8 @@ fn should_handle_jump_in_position_mode() {
 
 #[test]
 fn should_handle_jump_in_immediate_mode() {
-    let mut a = Computer::new(vec![3, 3, 1105, -1, 9, 1101, 0, 0, 12, 4, 12, 99, 1]);
-    let mut b = Computer::new(vec![3, 3, 1105, -1, 9, 1101, 0, 0, 12, 4, 12, 99, 1]);
+    let mut a = Computer::from_vec(vec![3, 3, 1105, -1, 9, 1101, 0, 0, 12, 4, 12, 99, 1]);
+    let mut b = Computer::from_vec(vec![3, 3, 1105, -1, 9, 1101, 0, 0, 12, 4, 12, 99, 1]);
 
     a.add_input(-20);
     a.run();
@@ -473,8 +508,17 @@ fn should_handle_jump_in_immediate_mode() {
 
 #[test]
 fn should_halt() {
-    let mut computer = Computer::new(vec![99]);
+    let mut computer = Computer::from_vec(vec![99]);
 
     assert!(computer.step()); // First run doesn't halt
     assert!(!computer.step()); // Second run halts
+}
+
+#[test]
+#[should_panic(expected = "Broke out of memory")]
+fn should_panic_on_lack_of_halt() {
+    let mut computer = Computer::from_vec(vec![3, 0, 4, 0]);
+
+    computer.add_input(0);
+    computer.run();
 }
