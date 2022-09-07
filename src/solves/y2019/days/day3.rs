@@ -241,6 +241,12 @@ fn part2_test() {
     );
 }
 
+#[test]
+#[should_panic(expected = "Unexpected direction!")]
+fn should_panic_on_unexpected_direction() {
+    part1("J2");
+}
+
 pub const SOLUTION: AdventOfCodeDay = AdventOfCodeDay {
     name: "Crossed Wires",
     part1: Some(part1),

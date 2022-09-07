@@ -24,6 +24,8 @@ jobs:
         with:
           shared-key: cache-${{ hashFiles('**/Cargo.lock') }}
           cache-on-failure: true
+      - name: Build
+        run: cargo build
       - name: Test
         run: cargo test --verbose
 

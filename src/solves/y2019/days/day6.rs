@@ -64,9 +64,7 @@ fn part2(data: &str) -> String {
 #[test]
 fn part1_test() {
     assert_eq!(
-        part1(String::from(
-            "COM)B\nB)C\nC)D\nD)E\nE)F\nB)G\nG)H\nD)I\nE)J\nJ)K\nK)L"
-        )),
+        part1("COM)B\nB)C\nC)D\nD)E\nE)F\nB)G\nG)H\nD)I\nE)J\nJ)K\nK)L"),
         "42"
     );
 }
@@ -74,9 +72,7 @@ fn part1_test() {
 #[test]
 fn part2_test() {
     assert_eq!(
-        part2(String::from(
-            "COM)B\nB)C\nC)D\nD)E\nE)F\nB)G\nG)H\nD)I\nE)J\nJ)K\nK)L\nK)YOU\nI)SAN"
-        )),
+        part2("COM)B\nB)C\nC)D\nD)E\nE)F\nB)G\nG)H\nD)I\nE)J\nJ)K\nK)L\nK)YOU\nI)SAN"),
         "4"
     )
 }

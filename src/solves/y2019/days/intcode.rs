@@ -61,6 +61,7 @@ impl Computer {
     pub fn parse(memory: &str) -> Vec<i64> {
         memory
             .trim()
+            .replace(' ', "")
             .split(',')
             .map(|n| {
                 n.parse()
@@ -174,17 +175,22 @@ impl Computer {
         let opcode = self.parse_opcode();
 
         match opcode {
+            // Addition
             1 => self.ternary_operation(true, |this, lhs, rhs, out| {
                 this.replace(Self::convert_usize(out), lhs + rhs);
             }),
+            // Multiplication
             2 => self.ternary_operation(true, |this, lhs, rhs, out| {
                 this.replace(Self::convert_usize(out), lhs * rhs);
             }),
+            // Input
             3 => self.unary_operation(true, |this, arg| {
                 let input = this.get_input();
                 this.replace(Self::convert_usize(arg), input);
             }),
+            // Output
             4 => self.unary_operation(false, |this, arg| this.output.push(arg)),
+            // Jump if not zero
             5 => self.binary_operation(false, |this, lhs, rhs| {
                 this.pointer = if lhs == 0 {
                     this.pointer
@@ -192,6 +198,7 @@ impl Computer {
                     Self::convert_usize(rhs)
                 };
             }),
+            // Jump if zero
             6 => self.binary_operation(false, |this, lhs, rhs| {
                 this.pointer = if lhs == 0 {
                     Self::convert_usize(rhs)
@@ -199,12 +206,15 @@ impl Computer {
                     this.pointer
                 };
             }),
+            // Less than
             7 => self.ternary_operation(true, |this, lhs, rhs, out| {
                 this.replace(Self::convert_usize(out), i64::from(lhs < rhs));
             }),
+            // Equal to
             8 => self.ternary_operation(true, |this, lhs, rhs, out| {
                 this.replace(Self::convert_usize(out), i64::from(lhs == rhs));
             }),
+            // Halt
             99 => self.finished = true,
             op => panic!("Found unexpected opcode: {op}!"),
         };
@@ -235,6 +245,14 @@ fn should_not_modify_memory_on_creation() {
 fn should_panic_on_unexpected_opcode() {
     let mut computer = Computer::new(vec![31, 2, 1, 4, 99]);
     computer.step();
+}
+
+#[test]
+fn should_generate_from_string() {
+    let vec_computer = Computer::new(vec![1, 0, 0, 0, 99]);
+    let string_computer = Computer::from_string("1, 0, 0, 0, 99");
+
+    assert_eq!(vec_computer.read_memory(), string_computer.read_memory());
 }
 
 #[test]
@@ -283,6 +301,14 @@ fn should_handle_long_source() {
 }
 
 #[test]
+#[should_panic]
+fn should_panic_on_unexpected_mode() {
+    let mut computer = Computer::new(vec![9002, 4, 3, 4, 33]);
+
+    computer.run();
+}
+
+#[test]
 fn should_handle_immediate_mode() {
     let mut computer = Computer::new(vec![1002, 4, 3, 4, 33]);
 
@@ -307,7 +333,7 @@ fn should_handle_io() {
     computer.add_input(10);
     computer.run();
 
-    assert_eq!(computer.output[0], 10)
+    assert_eq!(computer.output[0], 10);
 }
 
 #[test]
@@ -367,7 +393,7 @@ fn should_handle_equal_to_in_position_mode() {
     computer.add_input(8);
     computer.run();
 
-    assert_eq!(computer.read_outputs()[0], 1)
+    assert_eq!(computer.read_outputs()[0], 1);
 }
 
 #[test]
@@ -377,49 +403,72 @@ fn should_handle_less_than_in_position_mode() {
     computer.add_input(8);
     computer.run();
 
-    assert_eq!(computer.read_outputs()[0], 0)
+    assert_eq!(computer.read_outputs()[0], 0);
 }
 
 #[test]
 fn should_handle_equal_to_in_immediate_mode() {
-    let mut computer = Computer::new(vec![3, 3, 1108, -1, 8, 3, 4, 3, 99]);
+    let mut a = Computer::new(vec![3, 3, 1108, -1, 8, 3, 4, 3, 99]);
+    let mut b = Computer::new(vec![3, 3, 1108, -1, 8, 3, 4, 3, 99]);
 
-    computer.add_input(8);
-    computer.run();
+    a.add_input(8);
+    a.run();
 
-    assert_eq!(computer.read_outputs()[0], 1)
+    b.add_input(9);
+    b.run();
+
+    assert_eq!(a.read_outputs()[0], 1);
+    assert_eq!(b.read_outputs()[0], 0);
 }
 
 #[test]
 fn should_handle_less_than_in_immediate_mode() {
-    let mut computer = Computer::new(vec![3, 3, 1107, -1, 8, 3, 4, 3, 99]);
+    let mut a = Computer::new(vec![3, 3, 1107, -1, 8, 3, 4, 3, 99]);
+    let mut b = Computer::new(vec![3, 3, 1107, -1, 8, 3, 4, 3, 99]);
 
-    computer.add_input(8);
-    computer.run();
+    a.add_input(8);
+    a.run();
 
-    assert_eq!(computer.read_outputs()[0], 0)
+    b.add_input(7);
+    b.run();
+
+    assert_eq!(a.read_outputs()[0], 0);
+    assert_eq!(b.read_outputs()[0], 1);
 }
 
 #[test]
 fn should_handle_jump_in_position_mode() {
-    let mut computer = Computer::new(vec![
+    let mut a = Computer::new(vec![
         3, 12, 6, 12, 15, 1, 13, 14, 13, 4, 13, 99, -1, 0, 1, 9,
     ]);
 
-    computer.add_input(-20);
-    computer.run();
+    let mut b = Computer::new(vec![
+        3, 12, 6, 12, 15, 1, 13, 14, 13, 4, 13, 99, -1, 0, 1, 9,
+    ]);
 
-    assert_eq!(computer.read_outputs()[0], 1)
+    a.add_input(-20);
+    a.run();
+
+    b.add_input(0);
+    b.run();
+
+    assert_eq!(a.read_outputs()[0], 1);
+    assert_eq!(b.read_outputs()[0], 0);
 }
 
 #[test]
 fn should_handle_jump_in_immediate_mode() {
-    let mut computer = Computer::new(vec![3, 3, 1105, -1, 9, 1101, 0, 0, 12, 4, 12, 99, 1]);
+    let mut a = Computer::new(vec![3, 3, 1105, -1, 9, 1101, 0, 0, 12, 4, 12, 99, 1]);
+    let mut b = Computer::new(vec![3, 3, 1105, -1, 9, 1101, 0, 0, 12, 4, 12, 99, 1]);
 
-    computer.add_input(-20);
-    computer.run();
+    a.add_input(-20);
+    a.run();
 
-    assert_eq!(computer.read_outputs()[0], 1)
+    b.add_input(0);
+    b.run();
+
+    assert_eq!(a.read_outputs()[0], 1);
+    assert_eq!(b.read_outputs()[0], 0);
 }
 
 #[test]

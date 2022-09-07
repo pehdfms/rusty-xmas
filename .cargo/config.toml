@@ -1,0 +1,24 @@
+# ```
+# cargo install -f cargo-binutils
+# rustup component add llvm-tools-preview
+# ```
+
+# On Windows
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "link-arg=-fuse-ld=mold"]
+
+[target.x86_64-pc-windows-gnu]
+rustflags = ["-C", "link-arg=-fuse-ld=mold"]
+
+# On Linux:
+# - Ubuntu, `sudo apt-get install mold clang`
+# - Arch, `sudo pacman -S mold clang`
+[target.x86_64-unknown-linux-gnu]
+rustflags = ["-C", "linker=clang", "-C", "link-arg=-fuse-ld=mold"]
+
+# On MacOS, `brew install mold`
+[target.x86_64-apple-darwin]
+rustflags = ["-C", "link-arg=-fuse-ld=/usr/local/bin/mold"]
+
+[target.aarch64-apple-darwin]
+rustflags = ["-C", "link-arg=-fuse-ld=/usr/local/bin/mold"]

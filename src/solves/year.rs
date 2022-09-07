@@ -1,5 +1,6 @@
 pub type SolveFunction = Option<fn(data: &str) -> String>;
 
+#[derive(Debug)]
 pub enum DayProgress {
     Unsolved,
     PartlySolved,
@@ -27,6 +28,47 @@ impl AdventOfCodeDay<'_> {
             (None, None) => DayProgress::Unsolved,
             _ => panic!("Didn't expect only Part 2 to be solved!"),
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::{AdventOfCodeDay, DayProgress, SolveFunction};
+
+    fn helper_solve(s: &str) -> String {
+        s.to_string()
+    }
+
+    fn new_day<'a>(part1: SolveFunction, part2: SolveFunction) -> AdventOfCodeDay<'a> {
+        AdventOfCodeDay {
+            name: "irrelevant",
+            part1,
+            part2,
+        }
+    }
+
+    #[test]
+    #[should_panic(expected = "Part 2")]
+    fn should_panic_on_only_part2_solved() {
+        let _ = new_day(None, Some(helper_solve)).progress();
+    }
+
+    #[test]
+    fn should_return_correct_progress() {
+        assert!(matches!(
+            new_day(None, None).progress(),
+            DayProgress::Unsolved
+        ));
+
+        assert!(matches!(
+            new_day(Some(helper_solve), None).progress(),
+            DayProgress::PartlySolved
+        ));
+
+        assert!(matches!(
+            new_day(Some(helper_solve), Some(helper_solve)).progress(),
+            DayProgress::FullySolved
+        ));
     }
 }
 

@@ -50,7 +50,7 @@ fn read_cache(year: u64, day: u64) -> Result<String, io::Error> {
     Ok(data)
 }
 
-fn write_cache(year: u64, day: u64, data: &String) -> Result<(), Box<dyn Error>> {
+fn write_cache(year: u64, day: u64, data: &str) -> Result<(), Box<dyn Error>> {
     create_dir_all(format!("data/cache/{year}"))?;
 
     let mut file = File::create(format!("data/cache/{year}/day{day}.txt"))?;
@@ -71,4 +71,17 @@ fn request_data(year: u64, day: u64, session: &str) -> Result<String, Box<dyn Er
         .read_to_string(&mut data)?;
 
     Ok(data)
+}
+
+#[test]
+fn should_cache() {
+    write_cache(0, 0, "test").unwrap();
+    assert_eq!(read_cache(0, 0).unwrap(), "test");
+}
+
+#[test]
+fn should_get_data() {
+    let data = get_data(2019, 1).expect("Should be able to retrieve data!");
+
+    assert!(data.len() > 0);
 }
