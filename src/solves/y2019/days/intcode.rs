@@ -67,11 +67,21 @@ impl Computer {
     }
 
     pub fn read(&self, position: usize) -> i64 {
-        self.memory[position]
+        let memory_length = self.memory.len();
+        *self.memory.get(position).unwrap_or_else(|| {
+            panic!(
+                "Tried to index {position} in memory but actual size of memory is {memory_length}"
+            )
+        })
     }
 
     pub fn replace(&mut self, position: usize, value: i64) {
-        self.memory[position] = value;
+        let memory_length = self.memory.len();
+        *self.memory.get_mut(position).unwrap_or_else(||
+            panic!(
+                "Tried to replace position {position} in memory with {value} but actual size of memory is {memory_length}"
+            )
+        ) = value;
     }
 
     fn pop(&mut self) -> i64 {
@@ -172,10 +182,6 @@ impl Computer {
             return false;
         }
 
-        if self.pointer >= self.memory.len() {
-            panic!("Broke out of memory without halting! Did you forget to add a halt instruction?")
-        }
-
         let opcode = self.parse_opcode();
 
         match opcode {
@@ -236,16 +242,12 @@ impl Computer {
     }
 
     #[cfg(test)]
-    fn read_memory(&self) -> &Vec<i64> {
+    const fn read_memory(&self) -> &Vec<i64> {
         &self.memory
     }
 
     pub const fn finished(&self) -> bool {
         self.finished
-    }
-
-    pub const fn blocked(&self) -> bool {
-        self.blocked
     }
 }
 
@@ -359,12 +361,12 @@ fn should_handle_io_blocking() {
 
     computer.run();
     assert!(computer.read_outputs().is_empty());
-    assert!(computer.blocked());
+    assert!(computer.blocked);
 
     computer.add_input(10);
     computer.run();
     assert!(computer.read_outputs().is_empty());
-    assert!(computer.blocked());
+    assert!(computer.blocked);
 
     computer.add_input(10);
     computer.run();
@@ -515,7 +517,17 @@ fn should_halt() {
 }
 
 #[test]
-#[should_panic(expected = "Broke out of memory")]
+fn should_replace() {
+    let mut computer = Computer::from_vec(vec![23, 0, 99]);
+
+    computer.replace(0, 4);
+    computer.run();
+
+    assert_eq!(computer.read_outputs()[0], 4);
+}
+
+#[test]
+#[should_panic(expected = "Tried to index")]
 fn should_panic_on_lack_of_halt() {
     let mut computer = Computer::from_vec(vec![3, 0, 4, 0]);
 

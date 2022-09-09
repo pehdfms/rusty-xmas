@@ -83,5 +83,5 @@ fn should_cache() {
 fn should_get_data() {
     let data = get_data(2019, 1).expect("Should be able to retrieve data!");
 
-    assert!(data.len() > 0);
+    assert!(!data.is_empty());
 }

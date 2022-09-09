@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use colored::Colorize;
 
 use crate::{
@@ -8,7 +10,7 @@ use crate::{
     ui::utils::warn,
 };
 
-use self::menu::Menu;
+use self::{menu::Menu, utils::format_result_runtime};
 
 pub mod banner;
 pub mod menu;
@@ -113,10 +115,21 @@ fn day_menu(idx: usize, day: &AdventOfCodeDay, year: u64) {
         "Solve",
         || part1_solved,
         || {
+            let part1_start = Instant::now();
             let mut results = run_solve(day.part1, year, idx as u64);
+            let part1_duration = part1_start.elapsed();
+
+            results = format_result_runtime(&results, part1_duration);
 
             if part2_solved {
-                results = format!("{}\n{}", results, run_solve(day.part2, year, idx as u64));
+                let part2_start = Instant::now();
+                let part2_result = run_solve(day.part2, year, idx as u64);
+                let part2_duration = part2_start.elapsed();
+
+                results = format!(
+                    "{results}\n{}",
+                    format_result_runtime(&part2_result, part2_duration)
+                );
             }
 
             let mut part_menu = Menu::new(results);
@@ -132,7 +145,11 @@ fn day_menu(idx: usize, day: &AdventOfCodeDay, year: u64) {
         "Part 1",
         || part1_solved,
         || {
-            let mut part_menu = Menu::new(run_solve(day.part1, year, idx as u64));
+            let start = Instant::now();
+            let result = run_solve(day.part1, year, idx as u64);
+            let duration = start.elapsed();
+
+            let mut part_menu = Menu::new(format_result_runtime(&result, duration));
 
             part_menu.add_back_option("Go Back");
             part_menu.display();
@@ -144,7 +161,11 @@ fn day_menu(idx: usize, day: &AdventOfCodeDay, year: u64) {
         "Part 2",
         || part2_solved,
         || {
-            let mut part_menu = Menu::new(run_solve(day.part2, year, idx as u64));
+            let start = Instant::now();
+            let result = run_solve(day.part2, year, idx as u64);
+            let duration = start.elapsed();
+
+            let mut part_menu = Menu::new(format_result_runtime(&result, duration));
 
             part_menu.add_back_option("Go Back");
             part_menu.display();

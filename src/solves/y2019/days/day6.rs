@@ -74,7 +74,7 @@ fn part2_test() {
     assert_eq!(
         part2("COM)B\nB)C\nC)D\nD)E\nE)F\nB)G\nG)H\nD)I\nE)J\nJ)K\nK)L\nK)YOU\nI)SAN"),
         "4"
-    )
+    );
 }
 
 pub const SOLUTION: AdventOfCodeDay = AdventOfCodeDay {

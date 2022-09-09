@@ -1,3 +1,5 @@
+use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
+
 use crate::solves::{y2019::days::intcode::Computer, year::AdventOfCodeDay};
 
 fn non_repeating_permutations(array: &[i64]) -> Vec<Vec<i64>> {
@@ -7,7 +9,7 @@ fn non_repeating_permutations(array: &[i64]) -> Vec<Vec<i64>> {
 
     let first = array[0];
     non_repeating_permutations(&array[1..])
-        .iter()
+        .par_iter()
         .flat_map(|perm| {
             (0..=perm.len())
                 .map(|pos| {
@@ -24,7 +26,7 @@ fn part1(data: &str) -> String {
     let memory = Computer::parse(data);
 
     non_repeating_permutations(&[0, 1, 2, 3, 4])
-        .iter()
+        .par_iter()
         .map(|perm| {
             perm.iter().fold(0, |prev, phase_setting| {
                 let mut computer = Computer::from_vec(memory.clone());
@@ -48,11 +50,10 @@ fn part2(data: &str) -> String {
     let memory = Computer::parse(data);
 
     non_repeating_permutations(&[5, 6, 7, 8, 9])
-        .iter()
+        .par_iter()
         .map(|perm| {
             let mut amplifiers = vec![];
             (0..5).for_each(|_| amplifiers.push(Computer::from_vec(memory.clone())));
-            let amplifier_count = amplifiers.len();
 
             perm.iter().enumerate().for_each(|(idx, phase_setting)| {
                 amplifiers[idx].add_input(*phase_setting);
@@ -63,9 +64,7 @@ fn part2(data: &str) -> String {
             // a) fold doesn't support early exit afaik
             // b) iter_mut would require cloning each interpreter, not ideal
             loop {
-                for idx in 0..amplifier_count {
-                    let amplifier = &mut amplifiers[idx];
-
+                for amplifier in &mut amplifiers {
                     if amplifier.finished() {
                         return last_output;
                     }
@@ -119,7 +118,7 @@ fn part2_test() {
             "3,52,1001,52,-5,52,3,53,1,52,56,54,1007,54,5,55,1005,55,26,1001,54,\n-5,54,1105,1,12,1,53,54,53,1008,54,0,55,1001,55,1,55,2,53,55,53,4,\n53,1001,56,-1,56,1005,56,6,99,0,0,0,0,10"
         ),
         "18216"
-    )
+    );
 }
 
 pub const SOLUTION: AdventOfCodeDay = AdventOfCodeDay {

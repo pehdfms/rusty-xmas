@@ -1,3 +1,5 @@
+use rayon::prelude::{IntoParallelIterator, ParallelIterator};
+
 use crate::solves::year::AdventOfCodeDay;
 
 use super::intcode::Computer;
@@ -16,22 +18,29 @@ fn part1(data: &str) -> String {
 fn part2(data: &str) -> String {
     let memory = Computer::parse(data);
 
-    for noun in 0..=99 {
-        for verb in 0..=99 {
-            let mut computer = Computer::from_vec(memory.clone());
+    (0..100)
+        .into_par_iter()
+        .map(|noun| {
+            (0..100)
+                .into_par_iter()
+                .map(|verb| {
+                    let mut computer = Computer::from_vec(memory.clone());
 
-            computer.replace(1, noun);
-            computer.replace(2, verb);
+                    computer.replace(1, noun);
+                    computer.replace(2, verb);
 
-            computer.run();
+                    computer.run();
 
-            if computer.read(0) == 19_690_720 {
-                return (100 * noun + verb).to_string();
-            }
-        }
-    }
-
-    panic!("Couldn't find result in sample!");
+                    match computer.read(0) {
+                        19_690_720 => Some(100 * noun + verb),
+                        _ => None,
+                    }
+                })
+                .reduce(|| None, Option::or)
+        })
+        .reduce(|| None, Option::or)
+        .expect("Valid noun / verb combination should exist!")
+        .to_string()
 }
 
 pub const SOLUTION: AdventOfCodeDay = AdventOfCodeDay {

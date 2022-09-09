@@ -1,5 +1,7 @@
 use std::ops::Range;
 
+use rayon::prelude::{IntoParallelIterator, ParallelBridge, ParallelIterator};
+
 use crate::solves::year::AdventOfCodeDay;
 
 fn get_range(data: &str) -> Range<i64> {
@@ -69,6 +71,7 @@ fn validate_password(password: &str, validate_groups: bool) -> bool {
 
 fn part1(data: &str) -> String {
     get_range(data)
+        .into_par_iter()
         .filter(|item| validate_password(&item.to_string(), false))
         .count()
         .to_string()
@@ -76,6 +79,7 @@ fn part1(data: &str) -> String {
 
 fn part2(data: &str) -> String {
     get_range(data)
+        .into_par_iter()
         .filter(|item| {
             if validate_password(&item.to_string(), true) {
                 return true;
@@ -89,84 +93,74 @@ fn part2(data: &str) -> String {
 
 #[test]
 fn should_decline_lt_6_digits() {
-    assert_eq!(
-        validate_password("99999", false),
-        false,
+    assert!(
+        !validate_password("99999", false),
         "should decline less than 6 digit numbers"
     );
 }
 
 #[test]
 fn should_decline_gt_6_digits() {
-    assert_eq!(
-        validate_password("1000000", false),
-        false,
+    assert!(
+        !validate_password("1000000", false),
         "should decline more than 6 digit numbers"
     );
 }
 
 #[test]
 fn should_decline_no_adjacent_double() {
-    assert_eq!(
-        validate_password("123456", false),
-        false,
+    assert!(
+        !validate_password("123456", false),
         "should decline when there isn't an identical pair of adjacent digits"
     );
 }
 
 #[test]
 fn should_decline_decreasing_digits() {
-    assert_eq!(
-        validate_password("103456", false),
-        false,
+    assert!(
+        !validate_password("103456", false),
         "should decline when digits decrease from left to right"
     );
 }
 
 #[test]
 fn should_accept_all_doubles() {
-    assert_eq!(
+    assert!(
         validate_password("112233", true),
-        true,
         "should accept all doubles"
     );
 }
 
 #[test]
 fn should_decline_larger_group() {
-    assert_eq!(
-        validate_password("123444", true),
-        false,
+    assert!(
+        !validate_password("123444", true),
         "should decline larger group"
     );
 }
 
 #[test]
 fn should_accept_combined_doubles() {
-    assert_eq!(
+    assert!(
         validate_password("111122", true),
-        true,
         "should accept combined doubles"
     );
 }
 
 #[test]
 fn should_accept_valid_passwords() {
-    assert_eq!(
+    assert!(
         validate_password("122345", false),
-        true,
         "should accept valid password"
     );
 
-    assert_eq!(
+    assert!(
         validate_password("111123", false),
-        true,
         "should accept valid password"
     );
 
-    assert_eq!(
+    assert!(
         validate_password("111111", false),
-        true,
         "should accept valid password"
     );
 }

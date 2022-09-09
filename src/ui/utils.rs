@@ -42,3 +42,7 @@ pub fn get_stdin_number() -> Option<i64> {
 pub fn invalid_option() {
     warn("Please select a valid option!");
 }
+
+pub fn format_result_runtime(result: &str, duration: Duration) -> String {
+    format!("{result} - Elapsed Time: {}ms", duration.as_millis())
+}
