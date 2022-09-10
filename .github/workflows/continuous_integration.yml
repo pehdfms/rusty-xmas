@@ -31,8 +31,8 @@ jobs:
       - name: Test
         run: cargo test --verbose
 
-  rustfmt:
-    name: Format Check
+  clippy:
+    name: Clippy
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -41,16 +41,26 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          components: rustfmt, clippy
+          components: clippy
       - name: Cache Dependencies
         id: rust-cache
         uses: Swatinem/rust-cache@v2
         with:
           shared-key: cache-${{ hashFiles('**/Cargo.lock') }}
           cache-on-failure: true
-      - name: Check Formatting
-        run: cargo fmt --all --check
       - name: Check Clippy
         run: cargo clippy --benches --tests --all-features --
              --deny warnings -D clippy::pedantic -D clippy::nursery
              -A clippy::module-name-repetitions -A clippy::similar-names
+
+  rustfmt:
+    name: Format Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Check Formatting
+        run: cargo fmt --all --check
