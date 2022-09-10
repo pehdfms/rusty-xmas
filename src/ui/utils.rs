@@ -43,6 +43,7 @@ pub fn invalid_option() {
     warn("Please select a valid option!");
 }
 
+#[must_use]
 pub fn format_result_runtime(result: &str, duration: Duration) -> String {
     format!("{result} - Elapsed Time: {}ms", duration.as_millis())
 }

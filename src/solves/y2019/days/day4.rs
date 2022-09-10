@@ -1,6 +1,6 @@
 use std::ops::Range;
 
-use rayon::prelude::{IntoParallelIterator, ParallelBridge, ParallelIterator};
+use rayon::prelude::{IntoParallelIterator, ParallelIterator};
 
 use crate::solves::year::AdventOfCodeDay;
 
