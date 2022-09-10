@@ -14,17 +14,17 @@ fn parse_data(data: &str) -> HashMap<&str, Vec<&str>> {
     nodes
 }
 
-fn count_orbits(count: u32, node: &str, map: &HashMap<&str, Vec<&str>>) -> u32 {
+fn count_orbits(count: u64, node: &str, map: &HashMap<&str, Vec<&str>>) -> u64 {
     let children = map.get(node).expect("Node should exist");
 
     count
         + children
             .iter()
             .map(|node| count_orbits(count + 1, node, map))
-            .sum::<u32>()
+            .sum::<u64>()
 }
 
-fn shortest_path(node: &str, map: &HashMap<&str, Vec<&str>>) -> (Option<i32>, Option<i32>) {
+fn shortest_path(node: &str, map: &HashMap<&str, Vec<&str>>) -> (Option<i64>, Option<i64>) {
     let mut result = (None, None);
     map[node].iter().for_each(|node| {
         let child_result = shortest_path(node, map);
@@ -48,14 +48,14 @@ fn shortest_path(node: &str, map: &HashMap<&str, Vec<&str>>) -> (Option<i32>, Op
     result
 }
 
-fn part1(data: String) -> String {
-    let graph = parse_data(&data);
+fn part1(data: &str) -> String {
+    let graph = parse_data(data);
 
     count_orbits(0, "COM", &graph).to_string()
 }
 
-fn part2(data: String) -> String {
-    let graph = parse_data(&data);
+fn part2(data: &str) -> String {
+    let graph = parse_data(data);
 
     let result = shortest_path("COM", &graph);
     (result.0.unwrap() + result.1.unwrap()).to_string()
@@ -64,9 +64,7 @@ fn part2(data: String) -> String {
 #[test]
 fn part1_test() {
     assert_eq!(
-        part1(String::from(
-            "COM)B\nB)C\nC)D\nD)E\nE)F\nB)G\nG)H\nD)I\nE)J\nJ)K\nK)L"
-        )),
+        part1("COM)B\nB)C\nC)D\nD)E\nE)F\nB)G\nG)H\nD)I\nE)J\nJ)K\nK)L"),
         "42"
     );
 }
@@ -74,11 +72,9 @@ fn part1_test() {
 #[test]
 fn part2_test() {
     assert_eq!(
-        part2(String::from(
-            "COM)B\nB)C\nC)D\nD)E\nE)F\nB)G\nG)H\nD)I\nE)J\nJ)K\nK)L\nK)YOU\nI)SAN"
-        )),
+        part2("COM)B\nB)C\nC)D\nD)E\nE)F\nB)G\nG)H\nD)I\nE)J\nJ)K\nK)L\nK)YOU\nI)SAN"),
         "4"
-    )
+    );
 }
 
 pub const SOLUTION: AdventOfCodeDay = AdventOfCodeDay {

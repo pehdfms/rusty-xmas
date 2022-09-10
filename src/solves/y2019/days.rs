@@ -6,6 +6,7 @@ mod day3;
 mod day4;
 mod day5;
 mod day6;
+mod day7;
 
 mod intcode;
 
@@ -17,5 +18,6 @@ pub fn get_days<'a>() -> Vec<AdventOfCodeDay<'a>> {
         day4::SOLUTION,
         day5::SOLUTION,
         day6::SOLUTION,
+        day7::SOLUTION,
     ]
 }

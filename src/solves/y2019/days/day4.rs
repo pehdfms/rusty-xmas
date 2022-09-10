@@ -1,21 +1,23 @@
 use std::ops::Range;
 
+use rayon::prelude::{IntoParallelIterator, ParallelIterator};
+
 use crate::solves::year::AdventOfCodeDay;
 
-fn get_range(data: String) -> Range<i32> {
+fn get_range(data: &str) -> Range<i64> {
     let range: Vec<&str> = data.split('-').collect();
 
     let start = range[0]
         .trim()
-        .parse::<i32>()
+        .parse::<i64>()
         .expect("End of range should be int")
-        .max(1e5 as i32);
+        .max(100_000);
 
     let end = range[1]
         .trim()
-        .parse::<i32>()
+        .parse::<i64>()
         .expect("End of range should be int")
-        .min(1e6 as i32 - 1);
+        .min(1_000_000);
 
     start..end
 }
@@ -43,11 +45,11 @@ fn validate_password(password: &str, validate_groups: bool) -> bool {
         if prev_char == current {
             continuation_count += 1;
             if !validate_groups {
-                has_adjacent_repeating = true
+                has_adjacent_repeating = true;
             }
         } else {
             if continuation_count == 2 && validate_groups {
-                has_adjacent_repeating = true
+                has_adjacent_repeating = true;
             }
 
             continuation_count = 1;
@@ -67,15 +69,17 @@ fn validate_password(password: &str, validate_groups: bool) -> bool {
     has_adjacent_repeating
 }
 
-fn part1(data: String) -> String {
+fn part1(data: &str) -> String {
     get_range(data)
+        .into_par_iter()
         .filter(|item| validate_password(&item.to_string(), false))
         .count()
         .to_string()
 }
 
-fn part2(data: String) -> String {
+fn part2(data: &str) -> String {
     get_range(data)
+        .into_par_iter()
         .filter(|item| {
             if validate_password(&item.to_string(), true) {
                 return true;
@@ -89,84 +93,74 @@ fn part2(data: String) -> String {
 
 #[test]
 fn should_decline_lt_6_digits() {
-    assert_eq!(
-        validate_password("99999", false),
-        false,
+    assert!(
+        !validate_password("99999", false),
         "should decline less than 6 digit numbers"
     );
 }
 
 #[test]
 fn should_decline_gt_6_digits() {
-    assert_eq!(
-        validate_password("1000000", false),
-        false,
+    assert!(
+        !validate_password("1000000", false),
         "should decline more than 6 digit numbers"
     );
 }
 
 #[test]
 fn should_decline_no_adjacent_double() {
-    assert_eq!(
-        validate_password("123456", false),
-        false,
+    assert!(
+        !validate_password("123456", false),
         "should decline when there isn't an identical pair of adjacent digits"
     );
 }
 
 #[test]
 fn should_decline_decreasing_digits() {
-    assert_eq!(
-        validate_password("103456", false),
-        false,
+    assert!(
+        !validate_password("103456", false),
         "should decline when digits decrease from left to right"
     );
 }
 
 #[test]
 fn should_accept_all_doubles() {
-    assert_eq!(
+    assert!(
         validate_password("112233", true),
-        true,
         "should accept all doubles"
     );
 }
 
 #[test]
 fn should_decline_larger_group() {
-    assert_eq!(
-        validate_password("123444", true),
-        false,
+    assert!(
+        !validate_password("123444", true),
         "should decline larger group"
     );
 }
 
 #[test]
 fn should_accept_combined_doubles() {
-    assert_eq!(
+    assert!(
         validate_password("111122", true),
-        true,
         "should accept combined doubles"
     );
 }
 
 #[test]
 fn should_accept_valid_passwords() {
-    assert_eq!(
+    assert!(
         validate_password("122345", false),
-        true,
         "should accept valid password"
     );
 
-    assert_eq!(
+    assert!(
         validate_password("111123", false),
-        true,
         "should accept valid password"
     );
 
-    assert_eq!(
+    assert!(
         validate_password("111111", false),
-        true,
         "should accept valid password"
     );
 }

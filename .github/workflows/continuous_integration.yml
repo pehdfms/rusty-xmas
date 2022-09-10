@@ -19,11 +19,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - name: Install Mold Linker
+        uses: rui314/setup-mold@v1
       - name: Cache Dependencies
         uses: Swatinem/rust-cache@v2
         with:
-          shared-key: cache-${{ hashFiles('**/Cargo.lock') }}
           cache-on-failure: true
+      - name: Build
+        run: cargo build
       - name: Test
         run: cargo test --verbose
 
@@ -32,18 +35,30 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Check Formatting
+        run: cargo fmt --all --check
+
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Mold Linker
+        uses: rui314/setup-mold@v1
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
       - name: Cache Dependencies
         id: rust-cache
         uses: Swatinem/rust-cache@v2
         with:
-          shared-key: cache-${{ hashFiles('**/Cargo.lock') }}
           cache-on-failure: true
-      - name: Install Rust
-        if: ${{ !steps.rust-cache.outputs.cache-hit }}
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
-      - name: Check Formatting
-        run: cargo fmt --all --check
       - name: Check Clippy
-        run: cargo clippy -- --deny warnings
+        run: cargo clippy --benches --tests --all-features --
+             --deny warnings -D clippy::pedantic -D clippy::nursery
+             -A clippy::module-name-repetitions -A clippy::similar-names

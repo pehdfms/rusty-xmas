@@ -10,17 +10,20 @@ use std::{
 pub mod y2019;
 pub mod year;
 
+#[must_use]
 pub fn get_years<'a>() -> Vec<AdventOfCodeYear<'a>> {
     vec![get_2019_solutions()]
 }
 
-pub fn get_data(year: u32, day: u32) -> Result<String, Box<dyn Error>> {
+/// # Errors
+/// This function errors if it can't request data from Advent of Code inputs.
+pub fn get_data(year: u64, day: u64) -> Result<String, Box<dyn Error>> {
     read_cache(year, day).or_else(|_| {
         let session = get_session()
             .expect("Couldn't get session key to request data from. Add it to /data/session.txt");
-        let data = request_data(year, day, session)?;
+        let data = request_data(year, day, &session)?;
 
-        let _ = write_cache(year, day, &data).map_err(|e| {
+        let _unused_result = write_cache(year, day, &data).map_err(|e| {
             println!("Couldn't write to cache!");
             e
         });
@@ -38,7 +41,7 @@ fn get_session() -> Result<String, io::Error> {
     Ok(data.trim().to_string())
 }
 
-fn read_cache(year: u32, day: u32) -> Result<String, io::Error> {
+fn read_cache(year: u64, day: u64) -> Result<String, io::Error> {
     let mut file = File::open(format!("data/cache/{year}/day{day}.txt"))?;
     let mut data = String::new();
 
@@ -47,7 +50,7 @@ fn read_cache(year: u32, day: u32) -> Result<String, io::Error> {
     Ok(data)
 }
 
-fn write_cache(year: u32, day: u32, data: &String) -> Result<(), Box<dyn Error>> {
+fn write_cache(year: u64, day: u64, data: &str) -> Result<(), Box<dyn Error>> {
     create_dir_all(format!("data/cache/{year}"))?;
 
     let mut file = File::create(format!("data/cache/{year}/day{day}.txt"))?;
@@ -56,7 +59,7 @@ fn write_cache(year: u32, day: u32, data: &String) -> Result<(), Box<dyn Error>>
     Ok(())
 }
 
-fn request_data(year: u32, day: u32, session: String) -> Result<String, Box<dyn Error>> {
+fn request_data(year: u64, day: u64, session: &str) -> Result<String, Box<dyn Error>> {
     let client = Client::builder().cookie_store(true).build()?;
     let mut data = String::new();
 
@@ -68,4 +71,10 @@ fn request_data(year: u32, day: u32, session: String) -> Result<String, Box<dyn 
         .read_to_string(&mut data)?;
 
     Ok(data)
+}
+
+#[test]
+fn should_cache() {
+    write_cache(0, 0, "test").unwrap();
+    assert_eq!(read_cache(0, 0).unwrap(), "test");
 }

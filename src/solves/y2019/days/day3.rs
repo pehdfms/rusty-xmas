@@ -2,8 +2,8 @@ use crate::solves::year::AdventOfCodeDay;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct Point {
-    x: i32,
-    y: i32,
+    x: i64,
+    y: i64,
 }
 
 #[derive(Debug)]
@@ -27,23 +27,21 @@ impl Path {
         }
     }
 
-    fn intersects(&self, b: &Path) -> bool {
-        let amin = self.min();
-        let bmin = b.min();
-        let amax = self.max();
-        let bmax = b.max();
+    fn intersects(&self, b: &Self) -> bool {
+        let min = (self.min(), b.min());
+        let max = (self.max(), b.max());
 
-        if amin.x == 0 && bmin.x == 0 && amin.y == 0 && bmin.y == 0 {
+        if min == (Point { x: 0, y: 0 }, Point { x: 0, y: 0 }) {
             return false;
         }
 
-        let x_intersects = amin.x <= bmax.x && amax.x >= bmin.x;
-        let y_intersects = amin.y <= bmax.y && amax.y >= bmin.y;
+        let x_intersects = min.0.x <= max.1.x && max.0.x >= min.1.x;
+        let y_intersects = min.0.y <= max.1.y && max.0.y >= min.1.y;
 
         x_intersects && y_intersects
     }
 
-    fn fixed_point(&self, b: &Path) -> Point {
+    const fn fixed_point(&self, b: &Self) -> Point {
         let x = if self.start.x == self.end.x {
             self.start.x
         } else {
@@ -66,7 +64,7 @@ struct Wire {
 }
 
 impl Wire {
-    fn new(path: Vec<Point>) -> Wire {
+    fn new(path: &[Point]) -> Self {
         let mut paths: Vec<Path> = Vec::new();
 
         let mut current = &path[0];
@@ -85,10 +83,10 @@ impl Wire {
             current = point;
         }
 
-        Wire { paths }
+        Self { paths }
     }
 
-    fn intersections(&self, wire: &Wire) -> Vec<Point> {
+    fn intersections(&self, wire: &Self) -> Vec<Point> {
         let mut points: Vec<Point> = Vec::new();
 
         for i in &self.paths {
@@ -106,7 +104,7 @@ impl Wire {
         points
     }
 
-    pub fn closest_intersection(&self, wire: &Wire) -> i32 {
+    pub fn closest_intersection(&self, wire: &Self) -> i64 {
         self.intersections(wire)
             .iter()
             .map(|point| point.x.abs() + point.y.abs())
@@ -114,36 +112,31 @@ impl Wire {
             .expect("Closest intersection should exist.")
     }
 
-    pub fn first_intersection(&self, wire: &Wire) -> i32 {
+    pub fn first_intersection(&self, wire: &Self) -> i64 {
         let mut adist = 0;
         let mut shortest = None;
-        for apoint in &self.paths {
-            let amin = apoint.min();
-            let amax = apoint.max();
+        for a in &self.paths {
+            adist += a.max().x - a.min().x + a.max().y - a.min().y;
 
-            adist += amax.x - amin.x + amax.y - amin.y;
             let mut bdist = 0;
-            for bpoint in &wire.paths {
-                let bmin = bpoint.min();
-                let bmax = bpoint.max();
+            for b in &wire.paths {
+                bdist += b.max().x - b.min().x + b.max().y - b.min().y;
 
-                bdist += bmax.x - bmin.x + bmax.y - bmin.y;
-
-                if apoint.intersects(bpoint) {
-                    let fixed_point = apoint.fixed_point(bpoint);
+                if a.intersects(b) {
+                    let fixed_point = a.fixed_point(b);
 
                     if fixed_point.x == 0 && fixed_point.y == 0 {
                         continue;
                     }
 
-                    let intersection_adist = adist
-                        - (apoint.end.x - fixed_point.x).abs()
-                        - (apoint.end.y - fixed_point.y).abs();
+                    let intersection_adist =
+                        adist - (a.end.x - fixed_point.x).abs() - (a.end.y - fixed_point.y).abs();
 
-                    let intersection_bdist = bdist
-                        - (bpoint.end.x - fixed_point.x).abs()
-                        - (bpoint.end.y - fixed_point.y).abs();
+                    let intersection_bdist =
+                        bdist - (b.end.x - fixed_point.x).abs() - (b.end.y - fixed_point.y).abs();
+
                     let total_dist = intersection_adist + intersection_bdist;
+
                     shortest = match shortest {
                         Some(dist) if dist > total_dist => Some(total_dist),
                         Some(dist) => Some(dist),
@@ -166,7 +159,7 @@ fn parse_wire(path: &str) -> Wire {
             .next()
             .expect("All input vectors should have a direction and distance");
 
-        let distance: i32 = vector[1..]
+        let distance: i64 = vector[1..]
             .parse()
             .expect("2nd character onwards in input vector should parse as number.");
 
@@ -197,10 +190,10 @@ fn parse_wire(path: &str) -> Wire {
         wire_path.push(new_point);
     });
 
-    Wire::new(wire_path)
+    Wire::new(&wire_path)
 }
 
-fn part1(data: String) -> String {
+fn part1(data: &str) -> String {
     let wires: Vec<Wire> = data.split_whitespace().map(parse_wire).collect();
 
     let a = &wires[0];
@@ -209,7 +202,7 @@ fn part1(data: String) -> String {
     a.closest_intersection(b).to_string()
 }
 
-fn part2(data: String) -> String {
+fn part2(data: &str) -> String {
     let wires: Vec<Wire> = data.split_whitespace().map(parse_wire).collect();
 
     let a = &wires[0];
@@ -220,40 +213,38 @@ fn part2(data: String) -> String {
 
 #[test]
 fn part1_test() {
-    assert_eq!(part1(String::from("R8,U5,L5,D3\nU7,R6,D4,L4")), "6");
+    assert_eq!(part1("R8,U5,L5,D3\nU7,R6,D4,L4"), "6");
 
     assert_eq!(
-        part1(String::from(
-            "R75,D30,R83,U83,L12,D49,R71,U7,L72\nU62,R66,U55,R34,D71,R55,D58,R83"
-        )),
+        part1("R75,D30,R83,U83,L12,D49,R71,U7,L72\nU62,R66,U55,R34,D71,R55,D58,R83"),
         "159"
     );
 
     assert_eq!(
-        part1(String::from(
-            "R98,U47,R26,D63,R33,U87,L62,D20,R33,U53,R51\nU98,R91,D20,R16,D67,R40,U7,R15,U6,R7"
-        )),
+        part1("R98,U47,R26,D63,R33,U87,L62,D20,R33,U53,R51\nU98,R91,D20,R16,D67,R40,U7,R15,U6,R7"),
         "135"
     );
 }
 
 #[test]
 fn part2_test() {
-    assert_eq!(part2(String::from("R8,U5,L5,D3\nU7,R6,D4,L4")), "30");
+    assert_eq!(part2("R8,U5,L5,D3\nU7,R6,D4,L4"), "30");
 
     assert_eq!(
-        part2(String::from(
-            "R75,D30,R83,U83,L12,D49,R71,U7,L72\nU62,R66,U55,R34,D71,R55,D58,R83"
-        )),
+        part2("R75,D30,R83,U83,L12,D49,R71,U7,L72\nU62,R66,U55,R34,D71,R55,D58,R83"),
         "610"
     );
 
     assert_eq!(
-        part2(String::from(
-            "R98,U47,R26,D63,R33,U87,L62,D20,R33,U53,R51\nU98,R91,D20,R16,D67,R40,U7,R15,U6,R7"
-        )),
+        part2("R98,U47,R26,D63,R33,U87,L62,D20,R33,U53,R51\nU98,R91,D20,R16,D67,R40,U7,R15,U6,R7"),
         "410"
     );
+}
+
+#[test]
+#[should_panic(expected = "Unexpected direction!")]
+fn should_panic_on_unexpected_direction() {
+    part1("J2");
 }
 
 pub const SOLUTION: AdventOfCodeDay = AdventOfCodeDay {
