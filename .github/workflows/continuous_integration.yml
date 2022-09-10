@@ -24,7 +24,6 @@ jobs:
       - name: Cache Dependencies
         uses: Swatinem/rust-cache@v2
         with:
-          shared-key: cache-${{ hashFiles('**/Cargo.lock') }}
           cache-on-failure: true
       - name: Build
         run: cargo build
@@ -46,7 +45,6 @@ jobs:
         id: rust-cache
         uses: Swatinem/rust-cache@v2
         with:
-          shared-key: cache-${{ hashFiles('**/Cargo.lock') }}
           cache-on-failure: true
       - name: Check Clippy
         run: cargo clippy --benches --tests --all-features --
