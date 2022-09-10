@@ -25,7 +25,7 @@ jobs:
           shared-key: cache-${{ hashFiles('**/Cargo.lock') }}
           cache-on-failure: true
       - name: Install Mold Linker
-        run: apt get mold
+        run: apt-get install mold
       - name: Build
         run: cargo build
       - name: Test
@@ -50,6 +50,6 @@ jobs:
       - name: Check Formatting
         run: cargo fmt --all --check
       - name: Check Clippy
-        run: cargo clippy --benches --tests --all-features -- \
-             --deny warnings -D clippy::pedantic -D clippy::nursery \
+        run: cargo clippy --benches --tests --all-features --
+             --deny warnings -D clippy::pedantic -D clippy::nursery
              -A clippy::module-name-repetitions -A clippy::similar-names
