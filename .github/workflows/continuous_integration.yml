@@ -19,13 +19,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - name: Install Mold Linker
+        run: sudo apt-get install mold
       - name: Cache Dependencies
         uses: Swatinem/rust-cache@v2
         with:
           shared-key: cache-${{ hashFiles('**/Cargo.lock') }}
           cache-on-failure: true
-      - name: Install Mold Linker
-        run: apt-get install mold
       - name: Build
         run: cargo build
       - name: Test
@@ -36,17 +36,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - name: Install Mold Linker
+        run: sudo apt-get install mold
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
       - name: Cache Dependencies
         id: rust-cache
         uses: Swatinem/rust-cache@v2
         with:
           shared-key: cache-${{ hashFiles('**/Cargo.lock') }}
           cache-on-failure: true
-      - name: Install Rust
-        if: ${{ !steps.rust-cache.outputs.cache-hit }}
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
       - name: Check Formatting
         run: cargo fmt --all --check
       - name: Check Clippy
