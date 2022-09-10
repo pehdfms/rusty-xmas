@@ -78,4 +78,3 @@ fn should_cache() {
     write_cache(0, 0, "test").unwrap();
     assert_eq!(read_cache(0, 0).unwrap(), "test");
 }
-
